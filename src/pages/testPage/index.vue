@@ -33,8 +33,7 @@
       <button type="primary" @tap="takePhoto">拍摄头像</button>
       <text style="font-size: 10px">图片路径:{{ imgPath }}</text>
     </view>
-    <button @tap="addStudent(0,0)">添加学生</button>
-    <button @tap="loadCanvas()">加载头像并绘制</button>
+    <button @tap="openAddModal">添加学生</button>
     <slider
       step="1"
       value="100"
@@ -51,6 +50,37 @@
       :onTouchstart="TouchStart"
       :onTouchend="TouchEnd"
     ></canvas>
+    <at-modal :isOpened="ifOpenModal">
+      <at-modal-header>Modal模态弹窗测试</at-modal-header>
+      <at-modal-content>
+        <text>添加在</text>
+        <view>
+        <text>行：</text>
+        <at-input-number
+          :width="100"
+          :min="0"
+          :max="40"
+          :step="1"
+          v-model:value="addPosition[0]"
+        />
+        </view>
+        <view>
+        <text>列：</text>
+        <at-input-number
+          :width="100"
+          :min="0"
+          :max="40"
+          :step="1"
+          v-model:value="addPosition[1]"
+        />
+        </view>
+        <text>若已有人则置于下一行</text>
+      </at-modal-content>
+      <at-modal-action :isSimple="false">
+        <button @tap="closeAddModal">取消</button>
+        <button @tap="addStudent(addPosition[0], addPosition[1])">确定</button>
+      </at-modal-action>
+    </at-modal>
   </view>
 </template>
 
@@ -70,8 +100,23 @@ import Taro from "@tarojs/taro";
 import { ref } from "vue";
 import QRCode from "../../utils/weapp-qrcode.js";
 import "./index.scss";
+//UI
+import {
+  AtModal,
+  AtModalHeader,
+  AtModalContent,
+  AtModalAction,
+  AtInputNumber,
+} from "taro-ui-vue3";
 
 export default {
+  components: {
+    AtModal,
+    AtModalHeader,
+    AtModalContent,
+    AtModalAction,
+    AtInputNumber,
+  },
   setup() {
     const msg = ref("各接口测试");
     const QRcontent = ref("null"); //扫描的二维码的内容
@@ -80,11 +125,13 @@ export default {
     const touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
     const zoomScale = ref(1); //缩放大小
     const avatarData = ref(null); //头像数据
-    const studentsList = ref([]);
+    const studentsList = ref([]); //学生列表
     const imgPath = ref(
       "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"
     );
     const ifOpenCamera = ref(false);
+    const ifOpenModal = ref(false);
+    const addPosition = ref([0, 0]); //添加学生的位置
     //调起小程序API扫码
     function scanQR() {
       Taro.scanCode({
@@ -132,26 +179,34 @@ export default {
     }
     //加载头像到本地
     function loadCanvas() {
-      touchSetXY.value=[0,0] //初始点归位
+      touchSetXY.value = [0, 0]; //初始点归位
       const ctx = wx.createCanvasContext("classroomCanvas");
       wx.getImageInfo({
         src: imgPath.value,
         success(res) {
-          console.log(res.width);
-          console.log(res.height);
-          console.log(res.path);
+          //console.log(res.width);
+          //console.log(res.height);
+          //console.log(res.path);
           avatarData.value = res;
           CanvasClassroom(res, ctx, 10, 10);
           ctx.draw();
         },
       });
     }
+    //打开添加弹窗
+    function openAddModal() {
+      ifOpenModal.value = true;
+    }
+    //关闭添加弹窗
+    function closeAddModal() {
+      ifOpenModal.value = false;
+    }
     //添加学生
     function addStudent(row, column) {
       console.log(studentsList.value.findIndex(findSeat));
       if (studentsList.value.findIndex(findSeat) !== -1) {
         console.log("该位置已有人，添加失败", [row, column]);
-        addStudent(row+1,column) //如果已占，则往后加「测试用」
+        addStudent(row + 1, column); //如果已占，则往后加「测试用」
       } else {
         studentsList.value.push([row, column]);
         console.log("添加了一个学生");
@@ -161,6 +216,8 @@ export default {
       function findSeat(ter) {
         return ter[0] == row && ter[1] == column;
       }
+      ifOpenModal.value = false;
+      loadCanvas()
     }
     //Canvas绘图
     function CanvasClassroom(avatarRes, ctx, transX, transY) {
@@ -232,13 +289,15 @@ export default {
     }
     //改变缩放
     function zoomCanvas(e) {
-      touchSetXY.value=[0,0] //初始点归位
+      touchSetXY.value = [0, 0]; //初始点归位
       console.log(e.detail.value);
       zoomScale.value = e.detail.value / 100;
       const ctx = wx.createCanvasContext("classroomCanvas");
       CanvasClassroom(avatarData._rawValue, ctx, 0, 0);
       ctx.draw();
     }
+
+    //接口测试
     //Login测试
     function LoginTest() {
       Taro.login({
@@ -306,6 +365,10 @@ export default {
       zoomCanvas,
       SocketTest,
       LoginTest,
+      closeAddModal,
+      openAddModal,
+      ifOpenModal,
+      addPosition,
     };
   },
 };
