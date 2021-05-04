@@ -97,6 +97,11 @@ export default {
       },
     });
 
+    /** TODO: 当座位全部关联后关闭监听 
+     * wx.stopDeviceMotionListening(Object object) 
+     * wx.offDeviceMotionChange(function callback)
+     */
+    
     Taro.startDeviceMotionListening({
       interval: "ui",
       success: function () {
