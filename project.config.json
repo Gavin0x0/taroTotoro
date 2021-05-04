@@ -4,7 +4,7 @@
   "description": "Totoro class",
   "appid": "wx9557e03de1d71d15",
   "setting": {
-    "urlCheck": true,
+    "urlCheck": false,
     "es6": false,
     "enhance": false,
     "postcss": false,

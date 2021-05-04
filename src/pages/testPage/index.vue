@@ -3,6 +3,8 @@
     <text>{{ msg }}</text>
     <button @tap="LoginTest">Login测试</button>
     <button @tap="SocketTest">Socket测试</button>
+    <button @tap="CheckSession">Session测试</button>
+
     <button @tap="scanQR">扫描二维码</button>
     <text style="font-size: 10px">扫码结果:{{ QRcontent }}</text>
     <button @tap="geneQR(geneContent)">生成二维码</button>
@@ -26,13 +28,16 @@
           device-position="front"
           flash="off"
           binderror="error"
-          style="width: 100%; height: 200px"
+          style="width: 50%; height: 200px"
         ></camera>
         <image mode="widthFix" :src="imgPath"></image>
       </view>
       <button type="primary" @tap="takePhoto">拍摄头像</button>
       <text style="font-size: 10px">图片路径:{{ imgPath }}</text>
     </view>
+    <button @tap="canvasUtils">获取canvas</button>
+    <button @tap="tryToDraw">try add</button>
+    <button @tap="tryToMove">try move</button>
     <button @tap="openAddModal">添加学生</button>
     <slider
       step="1"
@@ -44,43 +49,56 @@
     />
     <canvas
       style="width: 100%; height: 800rpx"
-      canvas-id="classroomCanvas"
+      type="2d"
+      id="classroomCanvas"
       disable-scroll="true"
       :onTouchmove="TouchMove"
       :onTouchstart="TouchStart"
       :onTouchend="TouchEnd"
     ></canvas>
-    <at-modal :isOpened="ifOpenModal">
-      <at-modal-header>Modal模态弹窗测试</at-modal-header>
-      <at-modal-content>
-        <text>添加在</text>
-        <view>
-        <text>行：</text>
-        <at-input-number
-          :width="100"
-          :min="0"
-          :max="40"
-          :step="1"
-          v-model:value="addPosition[0]"
-        />
-        </view>
-        <view>
-        <text>列：</text>
-        <at-input-number
-          :width="100"
-          :min="0"
-          :max="40"
-          :step="1"
-          v-model:value="addPosition[1]"
-        />
-        </view>
-        <text>若已有人则置于下一行</text>
-      </at-modal-content>
-      <at-modal-action :isSimple="false">
-        <button @tap="closeAddModal">取消</button>
-        <button @tap="addStudent(addPosition[0], addPosition[1])">确定</button>
-      </at-modal-action>
-    </at-modal>
+    <cover-view>
+      <at-modal :isOpened="ifOpenModal">
+        <at-modal-header>Modal模态弹窗测试</at-modal-header>
+        <at-modal-content>
+          <text>将</text>
+          <at-input
+            name="addName"
+            title=""
+            type="text"
+            placeholder="学生姓名"
+            v-model:value="addName"
+          />
+          <text>添加在</text>
+          <view>
+            <text>行：</text>
+            <at-input-number
+              :width="100"
+              :min="0"
+              :max="40"
+              :step="1"
+              v-model:value="addPosition[0]"
+            />
+          </view>
+          <view>
+            <text>列：</text>
+            <at-input-number
+              :width="100"
+              :min="0"
+              :max="40"
+              :step="1"
+              v-model:value="addPosition[1]"
+            />
+          </view>
+          <text>若已有人则置于下一行</text>
+        </at-modal-content>
+        <at-modal-action :isSimple="false">
+          <button @tap="closeAddModal">取消</button>
+          <button @tap="addStudent(addPosition[0], addPosition[1], addName)">
+            确定
+          </button>
+        </at-modal-action>
+      </at-modal>
+    </cover-view>
   </view>
 </template>
 
@@ -98,10 +116,11 @@
 <script>
 import Taro from "@tarojs/taro";
 import { ref } from "vue";
-import QRCode from "../../utils/weapp-qrcode.js";
+//import QRCode from "../../utils/weapp-qrcode.js";
 import "./index.scss";
-//UI
+//taro UI 对应的CSS在index.scss文件里
 import {
+  AtInput,
   AtModal,
   AtModalHeader,
   AtModalContent,
@@ -111,6 +130,7 @@ import {
 
 export default {
   components: {
+    AtInput,
     AtModal,
     AtModalHeader,
     AtModalContent,
@@ -126,12 +146,16 @@ export default {
     const zoomScale = ref(1); //缩放大小
     const avatarData = ref(null); //头像数据
     const studentsList = ref([]); //学生列表
+    const addName = ref("Jack"); //学生姓名
     const imgPath = ref(
       "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"
-    );
-    const ifOpenCamera = ref(false);
-    const ifOpenModal = ref(false);
+    ); //头像数据
+    const ifOpenCamera = ref(false); //是否开启摄像头
+    const ifOpenModal = ref(false); //是否打开弹窗
     const addPosition = ref([0, 0]); //添加学生的位置
+    const C_canvas = ref(null);
+    const C_ctx = ref(null);
+
     //调起小程序API扫码
     function scanQR() {
       Taro.scanCode({
@@ -177,22 +201,93 @@ export default {
         },
       });
     }
-    //加载头像到本地
-    function loadCanvas() {
-      touchSetXY.value = [0, 0]; //初始点归位
-      const ctx = wx.createCanvasContext("classroomCanvas");
-      wx.getImageInfo({
-        src: imgPath.value,
-        success(res) {
-          //console.log(res.width);
-          //console.log(res.height);
-          //console.log(res.path);
-          avatarData.value = res;
-          CanvasClassroom(res, ctx, 10, 10);
-          ctx.draw();
-        },
+    //工具类，获取canvas
+    async function canvasUtils() {
+      // 取 canvas 节点
+      // 此处使用 await
+      let canvasNode = await new Promise((resolve, reject) => {
+        // 注意：若canvas是定义在在组件内，需改用
+        // const query = wx.createSelectorQuery().in(this)
+        const query = wx.createSelectorQuery();
+        query
+          .select("#classroomCanvas")
+          .fields({ node: true, size: true })
+          .exec((res) => {
+            resolve(res[0]);
+          });
       });
+      let canvas = canvasNode.node,
+        ctx = canvas.getContext("2d");
+      // 获取设备像素比调整画布尺寸，并缩放坐标系
+      const dpr = wx.getSystemInfoSync().pixelRatio;
+      canvas.width = canvasNode.width * dpr;
+      canvas.height = canvasNode.height * dpr;
+
+      // 设置 canvas 坐标原点
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(dpr, dpr);
+      console.log(canvas, ctx);
+      C_canvas.value = canvas;
+      C_ctx.value = ctx;
     }
+    //绘制测试
+    function tryToDraw() {
+      let ctx = C_ctx._rawValue;
+      let canvas = C_canvas._rawValue;
+      const img = canvas.createImage();
+      img.src = imgPath.value;
+      ctx.drawImage(img, 0, 0, 100, 100);
+    }
+    function tryToMove() {
+      let ctx = C_ctx._rawValue;
+      // 清楚画布
+      ctx.clearRect(-375, -400, 750, 750);
+      // 保存当前帧，以备复原
+      //ctx.save()
+      // 画布旋转
+      //ctx.rotate(30 / 180 * Math.PI);
+      ctx.translate(-1, 1);
+      tryToDraw();
+      // 操作完后复原至 save 步骤
+      //ctx.restore()
+    }
+
+    // //加载头像到本地
+    // function loadCanvas() {
+    //   wx.createSelectorQuery()
+    //     .select("#classroomCanvas")
+    //     .fields({
+    //       node: true,
+    //       size: true,
+    //     })
+    //     .exec(drawTest.bind(this));
+    // }
+    // function drawTest(res) {
+    //   console.log(res);
+    //   const canvas = res[0].node;
+    //   const ctx = canvas.getContext("2d");
+    //   touchSetXY.value = [0, 0]; //初始点归位
+    //   //const ctx = wx.createCanvasContext("classroomCanvas");
+    //   const img = canvas.createImage();
+    //   // img.onload = () => {
+    //   //   this._img = img;
+    //   // };
+    //   img.src = imgPath.value;
+    //   CanvasClassroom(img, ctx, 10, 10);
+    //   ctx.draw();
+
+    // wx.getImageInfo({
+    //   src: imgPath.value,
+    //   success(res) {
+    //     //console.log(res.width);
+    //     //console.log(res.height);
+    //     //console.log(res.path);
+    //     avatarData.value = res;
+    //     CanvasClassroom(res, ctx, 10, 10);
+    //     ctx.draw();
+    //   },
+    // });
+    //    }
     //打开添加弹窗
     function openAddModal() {
       ifOpenModal.value = true;
@@ -202,55 +297,48 @@ export default {
       ifOpenModal.value = false;
     }
     //添加学生
-    function addStudent(row, column) {
-      console.log(studentsList.value.findIndex(findSeat));
-      if (studentsList.value.findIndex(findSeat) !== -1) {
-        console.log("该位置已有人，添加失败", [row, column]);
-        addStudent(row + 1, column); //如果已占，则往后加「测试用」
-      } else {
-        studentsList.value.push([row, column]);
-        console.log("添加了一个学生");
-      }
-      console.log("当前学生：", studentsList._rawValue);
-      //二维数组查找
-      function findSeat(ter) {
-        return ter[0] == row && ter[1] == column;
-      }
-      ifOpenModal.value = false;
-      loadCanvas()
-    }
+    // function addStudent(row, column, name) {
+    //   console.log(studentsList.value.findIndex(findSeat));
+    //   if (studentsList.value.findIndex(findSeat) !== -1) {
+    //     console.log("该位置已有人，添加失败", [row, column]);
+    //     addStudent(row + 1, column, name); //如果已占，则往后加「测试用」
+    //   } else {
+    //     studentsList.value.push([row, column, name]);
+    //     console.log("添加了一个学生:", name);
+    //   }
+    //   console.log("当前学生：", studentsList._rawValue);
+    //   //二维数组查找
+    //   function findSeat(ter) {
+    //     return ter[0] == row && ter[1] == column;
+    //   }
+    //   ifOpenModal.value = false;
+    //   loadCanvas();
+    // }
     //Canvas绘图
-    function CanvasClassroom(avatarRes, ctx, transX, transY) {
-      //设置缩放
-      ctx.transform(zoomScale._rawValue, 0, 0, zoomScale._rawValue, 0, 0);
-      //drawImage(图片路径, 图片选择框起始x, 图片选择框起始y, 图片选择框宽度, 图片选择框高度, 放置位置x, 放置位置y, 放置宽度, 放置高度)
-      let mapList = studentsList._rawValue;
-      for (let i in mapList) {
-        CanvasStudent(
-          avatarRes,
-          ctx,
-          transX,
-          transY,
-          mapList[i][0],
-          mapList[i][1]
-        );
-      }
-    }
+    // function CanvasClassroom(avatarRes, ctx, transX, transY) {
+    //   //设置缩放
+    //   ctx.transform(zoomScale._rawValue, 0, 0, zoomScale._rawValue, 0, 0);
+    //   //drawImage(图片路径, 图片选择框起始x, 图片选择框起始y, 图片选择框宽度, 图片选择框高度, 放置位置x, 放置位置y, 放置宽度, 放置高度)
+    //   let mapList = studentsList._rawValue;
+    //   for (let i in mapList) {
+    //     CanvasStudent(
+    //       avatarRes,
+    //       ctx,
+    //       transX,
+    //       transY,
+    //       mapList[i][0], //row
+    //       mapList[i][1], //column
+    //       mapList[i][2] //name
+    //     );
+    //   }
+    // }
     //绘制个人位置
-    function CanvasStudent(avatarRes, ctx, transX, transY, row, column) {
-      ctx.drawImage(
-        avatarRes.path,
-        0,
-        0,
-        avatarRes.width,
-        avatarRes.height,
-        transX + 110 * column,
-        transY + 110 * row,
-        100,
-        100
-      );
-    }
-
+    // function CanvasStudent(img, ctx, transX, transY, row, column, name) {
+    //   ctx.drawImage(img, transX + 110 * column, transY + 140 * row, 100, 100);
+    //   ctx.font = "normal normal 20px sans-serif";
+    //   //ctx.setTextAlign("center");
+    //   ctx.fillText(name, transX + 110 * column + 50, transY + 140 * row + 120);
+    // }
     //移动画布
     //开始触摸
     function TouchStart(e) {
@@ -259,7 +347,7 @@ export default {
     }
     //手指移动
     function TouchMove(e) {
-      const ctx = wx.createCanvasContext("classroomCanvas");
+      let ctx = C_ctx._rawValue;
       if (e.touches.length == 1) {
         console.log("单指触摸", e.touches);
         let transX =
@@ -268,8 +356,9 @@ export default {
           e.touches[0].y - touchStartXY._rawValue[1] + touchSetXY._rawValue[1];
         //CanvasContext.transform(number scaleX, number skewX, number skewY, number scaleY, number translateX, number translateY)
         console.log("位移X：", transX, "位移Y：", transY);
-        CanvasClassroom(avatarData._rawValue, ctx, transX, transY);
-        ctx.draw();
+        tryToMove();
+        // CanvasClassroom(avatarData._rawValue, ctx, transX, transY);
+        // ctx.draw();
       } else {
         console.log("多指触摸", e.touches);
       }
@@ -296,7 +385,6 @@ export default {
       CanvasClassroom(avatarData._rawValue, ctx, 0, 0);
       ctx.draw();
     }
-
     //接口测试
     //Login测试
     function LoginTest() {
@@ -314,10 +402,26 @@ export default {
               data: {
                 code: res.code,
               },
+              success: function (res) {
+                console.log(res.data);
+              },
             });
           } else {
-            console.log("登录失败！" + res.errMsg);
+            console.log("用户凭证获取失败！" + res.errMsg);
           }
+        },
+      });
+    }
+    function CheckSession() {
+      Taro.checkSession({
+        success: function () {
+          //session_key 未过期，并且在本生命周期一直有效
+          console.log("未过期");
+        },
+        fail: function () {
+          // session_key 已经失效，需要重新执行登录流程
+          console.log("已过期，重新登录");
+          LoginTest(); //重新登录
         },
       });
     }
@@ -357,8 +461,9 @@ export default {
       takePhoto,
       imgPath,
       ifOpenCamera,
-      loadCanvas,
-      addStudent,
+      //loadCanvas,
+      //addStudent,
+      //addName,
       TouchStart,
       TouchMove,
       TouchEnd,
@@ -369,6 +474,10 @@ export default {
       openAddModal,
       ifOpenModal,
       addPosition,
+      canvasUtils,
+      tryToDraw,
+      tryToMove,
+      CheckSession,
     };
   },
 };
