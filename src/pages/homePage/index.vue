@@ -2,6 +2,7 @@
   <view class="homePage">
     <text>{{ msg }}</text>
     <button @tap="redirectTo('/pages/testPage/index')">测试页</button>
+    <button @tap="redirectTo('/pages/teaMainPage/index')">教师主页</button>
     <button @tap="redirectTo('/pages/stuMainPage/index')">学生主页</button>
     <button @tap="redirectTo('/pages/uploadPage/index')">进入教室「学生」</button>
   </view>
