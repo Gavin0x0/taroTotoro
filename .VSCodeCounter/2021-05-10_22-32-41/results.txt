@@ -1,0 +1,60 @@
+Date : 2021-05-10 22:32:41
+Directory : /Users/levi/Projects/taroTotoro/src/pages
+Total : 26 files,  1268 codes, 164 comments, 50 blanks, all 1482 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| Vue.js     |          9 |      1,212 |        154 |         34 |      1,400 |
+| JavaScript |          9 |         42 |          7 |         12 |         61 |
+| SCSS       |          8 |         14 |          3 |          4 |         21 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                  | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                     |         26 |      1,268 |        164 |         50 |      1,482 |
+| addPage                                                               |          3 |         21 |          0 |          5 |         26 |
+| homePage                                                              |          3 |         32 |          1 |          6 |         39 |
+| index                                                                 |          3 |         50 |          5 |          7 |         62 |
+| qrScanPage                                                            |          3 |         20 |          0 |          5 |         25 |
+| stuMainPage                                                           |          4 |        460 |         20 |          6 |        486 |
+| teaMainPage                                                           |          3 |        120 |          5 |          2 |        127 |
+| testPage                                                              |          4 |        379 |        130 |         15 |        524 |
+| uploadPage                                                            |          3 |        186 |          3 |          4 |        193 |
++-----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                              | language   | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| /Users/levi/Projects/taroTotoro/src/pages/addPage/index.config.js     | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/addPage/index.scss          | SCSS       |          0 |          0 |          1 |          1 |
+| /Users/levi/Projects/taroTotoro/src/pages/addPage/index.vue           | Vue.js     |         18 |          0 |          3 |         21 |
+| /Users/levi/Projects/taroTotoro/src/pages/homePage/index.config.js    | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/homePage/index.scss         | SCSS       |          0 |          0 |          1 |          1 |
+| /Users/levi/Projects/taroTotoro/src/pages/homePage/index.vue          | Vue.js     |         29 |          1 |          4 |         34 |
+| /Users/levi/Projects/taroTotoro/src/pages/index/index.config.js       | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/index/index.scss            | SCSS       |          0 |          0 |          1 |          1 |
+| /Users/levi/Projects/taroTotoro/src/pages/index/index.vue             | Vue.js     |         47 |          5 |          5 |         57 |
+| /Users/levi/Projects/taroTotoro/src/pages/qrScanPage/index.config.js  | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/qrScanPage/index.scss       | SCSS       |          0 |          0 |          1 |          1 |
+| /Users/levi/Projects/taroTotoro/src/pages/qrScanPage/index.vue        | Vue.js     |         17 |          0 |          3 |         20 |
+| /Users/levi/Projects/taroTotoro/src/pages/stuMainPage/OtherStu.vue    | Vue.js     |        132 |          1 |          2 |        135 |
+| /Users/levi/Projects/taroTotoro/src/pages/stuMainPage/index.config.js | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/stuMainPage/index.scss      | SCSS       |          5 |          0 |          0 |          5 |
+| /Users/levi/Projects/taroTotoro/src/pages/stuMainPage/index.vue       | Vue.js     |        320 |         19 |          3 |        342 |
+| /Users/levi/Projects/taroTotoro/src/pages/teaMainPage/index.config.js | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/teaMainPage/index.scss      | SCSS       |          2 |          0 |          0 |          2 |
+| /Users/levi/Projects/taroTotoro/src/pages/teaMainPage/index.vue       | Vue.js     |        115 |          5 |          1 |        121 |
+| /Users/levi/Projects/taroTotoro/src/pages/testPage/canvas-2d-utils.js | JavaScript |         18 |          7 |          4 |         29 |
+| /Users/levi/Projects/taroTotoro/src/pages/testPage/index.config.js    | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/testPage/index.scss         | SCSS       |          3 |          3 |          0 |          6 |
+| /Users/levi/Projects/taroTotoro/src/pages/testPage/index.vue          | Vue.js     |        355 |        120 |         10 |        485 |
+| /Users/levi/Projects/taroTotoro/src/pages/uploadPage/index.config.js  | JavaScript |          3 |          0 |          1 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/uploadPage/index.scss       | SCSS       |          4 |          0 |          0 |          4 |
+| /Users/levi/Projects/taroTotoro/src/pages/uploadPage/index.vue        | Vue.js     |        179 |          3 |          3 |        185 |
+| Total                                                                 |            |      1,268 |        164 |         50 |      1,482 |
++-----------------------------------------------------------------------+------------+------------+------------+------------+------------+
