@@ -1,5 +1,8 @@
 <template>
   <view>
+    <text>
+      {{ loginState }}
+    </text>
     <at-form style="padding-bottom: 10px">
       <view v-if="!ifStart" class="flex-wrp flex-wrp-center">
         <image
@@ -73,6 +76,9 @@ export default {
     AtButton,
     AtMessage,
   },
+  mounted() {
+    this.LoginTest();
+  },
   setup() {
     const ifStart = ref(false); //是否开始拍摄
     const ifOpenCamera = ref(false); //是否开启摄像头
@@ -81,6 +87,34 @@ export default {
       name: "",
       id: "",
     });
+    const loginState = ref("未判断");
+    //静默登陆
+    function LoginTest() {
+      Taro.login({
+        success: function (res) {
+          console.log("Login:", res);
+          if (res.code) {
+            //发起网络请求
+            Taro.request({
+              url: "https://eclass.idealbroker.cn/login",
+              method: "POST",
+              header: {
+                "content-type": "application/x-www-form-urlencoded",
+              },
+              data: {
+                code: res.code,
+              },
+              success: function (res) {
+                console.log(res.data);
+                loginState.value = res.data.is_new_user;
+              },
+            });
+          } else {
+            console.log("用户凭证获取失败！" + res.errMsg);
+          }
+        },
+      });
+    }
     //启动相机
     function openCamera() {
       console.log("开始拍摄");
@@ -123,7 +157,7 @@ export default {
       if (!V_result) {
         console.log(formData.value);
         Taro.uploadFile({
-          url: "http://127.0.0.1:8000/avatar/upload", //仅为本地测试，非真实的接口地址
+          url: "https://eclass.idealbroker.cn/add", //仅为本地测试，非真实的接口地址
           filePath: imgPath.value,
           name: "file",
           formData: {
@@ -131,14 +165,20 @@ export default {
             id: formData.value.id,
           },
           success(res) {
-            console.log("success",res.data);
+            console.log("success", res.data);
+            try {
+              Taro.setStorageSync("s_name", formData.value.name);
+              Taro.setStorageSync("s_id", formData.value.id);
+            } catch (e) {
+              console.log("setStorageSync fail",e)
+            }
             Taro.reLaunch({
               url: "/pages/stuMainPage/index",
             });
           },
-          fail(res){
-            console.log("error",res)
-          }
+          fail(res) {
+            console.log("error", res);
+          },
         });
       } else {
         wx.showToast({
@@ -165,6 +205,8 @@ export default {
       onSubmit,
       onReset,
       imgPath,
+      loginState,
+      LoginTest,
     };
   },
 };

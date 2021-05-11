@@ -26,6 +26,7 @@ export default {
   props: {
     direction: String,
     s_name: String,
+    p_string: String,
   },
   components: {
     AtAvatar,
@@ -58,11 +59,29 @@ export default {
             let data = JSON.parse(res.result.split("$")[1]);
             console.log(data);
             console.log("添加同学" + data.name + ":" + data.id);
+            let o_id = Taro.getStorageSync("s_id");
+            let position = props.p_string
+            console.log("位于",position)
+            Taro.request({
+              url: "https://eclass.idealbroker.cn/set",
+              method: "POST",
+              header: {
+                "content-type": "application/x-www-form-urlencoded",
+              },
+              data: {
+                origin: o_id,//原点
+                target: data.id,//目标
+                position: position,//
+              },
+              success: function (res) {
+                console.log(res.data);
+              },
+            });
             s_name_text.value = "已设置：" + data.name;
             avatar_text.value = data.name.substring(0, 1);
             bgColorType.value = 1;
           } catch (error) {
-            console.log("参数非法");
+            console.log("参数非法",error);
             wx.showToast({
               title: "非法身份码",
               icon: "error",

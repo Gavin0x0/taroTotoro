@@ -2,9 +2,8 @@
   <view class="homePage">
     <text>{{ msg }}</text>
     <button @tap="redirectTo('/pages/testPage/index')">测试页</button>
-    <button @tap="redirectTo('/pages/teaMainPage/index')">教师主页</button>
-    <button @tap="redirectTo('/pages/stuMainPage/index')">学生主页</button>
-    <button @tap="redirectTo('/pages/uploadPage/index')">进入教室「学生」</button>
+    <button @tap="redirectTo('/pages/teaMainPage/index')">「教师」</button>
+    <button @tap="redirectTo('/pages/uploadPage/index')">「学生」</button>
   </view>
 </template>
 
@@ -15,7 +14,7 @@ import "./index.scss";
 export default {
   name: "home",
   setup(props) {
-    const msg = ref("Hello world - Home Page");
+    const msg = ref("欢迎进入，请选择你的角色");
     function redirectTo(path) {
       //销毁所有页面并进入
       Taro.reLaunch({
