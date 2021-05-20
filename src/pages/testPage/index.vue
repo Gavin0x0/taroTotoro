@@ -50,7 +50,7 @@
     <canvas
       style="width: 100%; height: 800rpx"
       type="2d"
-      id="classroomCanvas"
+      id="classroom2Canvas"
       disable-scroll="true"
       :onTouchmove="TouchMove"
       :onTouchstart="TouchStart"
@@ -210,9 +210,10 @@ export default {
         // const query = wx.createSelectorQuery().in(this)
         const query = wx.createSelectorQuery();
         query
-          .select("#classroomCanvas")
+          .select("#classroom2Canvas")
           .fields({ node: true, size: true })
           .exec((res) => {
+            console.log("Select",res)
             resolve(res[0]);
           });
       });
@@ -255,7 +256,7 @@ export default {
     // //加载头像到本地
     // function loadCanvas() {
     //   wx.createSelectorQuery()
-    //     .select("#classroomCanvas")
+    //     .select("#classroom2Canvas")
     //     .fields({
     //       node: true,
     //       size: true,
@@ -267,7 +268,7 @@ export default {
     //   const canvas = res[0].node;
     //   const ctx = canvas.getContext("2d");
     //   touchSetXY.value = [0, 0]; //初始点归位
-    //   //const ctx = wx.createCanvasContext("classroomCanvas");
+    //   //const ctx = wx.createCanvasContext("classroom2Canvas");
     //   const img = canvas.createImage();
     //   // img.onload = () => {
     //   //   this._img = img;
@@ -381,7 +382,7 @@ export default {
       touchSetXY.value = [0, 0]; //初始点归位
       console.log(e.detail.value);
       zoomScale.value = e.detail.value / 100;
-      const ctx = wx.createCanvasContext("classroomCanvas");
+      const ctx = wx.createCanvasContext("classroom2Canvas");
       CanvasClassroom(avatarData._rawValue, ctx, 0, 0);
       ctx.draw();
     }
