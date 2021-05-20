@@ -59,7 +59,7 @@
   ></canvas>
 </template>
 <script>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUpdate } from "vue";
 import "./index.scss";
 import Taro from "@tarojs/taro";
 import { AtAvatar, AtButton, AtNoticebar } from "taro-ui-vue3";
@@ -71,11 +71,28 @@ export default {
   },
   onReady() {
     console.log("on ready");
+    //this.canvasUtils(); //获取canvas「出错」
     this.GetWebSocket();
-    this.canvasUtils();
     this.loadImg();
   },
   setup() {
+    //FIXME 由于框架的问题，无法在onReady()生命周期取到canvas，希望之后可以被修复
+    /**
+        目标写法：
+        onReady() {
+          console.log("on ready");
+          this.canvasUtils() //获取canvas「出错」
+          this.GetWebSocket();
+          this.loadImg();
+        },
+        当前折中的方案是设一个flag判断是否已获取到canvas,在onBeforeUpdate()中获取canvas
+     */
+    onBeforeUpdate(() => {
+      if (!ifGotCanvas._rawValue) {
+        canvasUtils();
+      }
+      console.log("Component is onBeforeUpdate!");
+    });
     //ws的四种状态对应样式
     const stateList = [
       { color: "#FFC82C", text: "未连接" },
@@ -98,6 +115,7 @@ export default {
     const touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
     const avaters = ref(null);
     const canvas_scal = ref(null); //canvas尺寸
+    const ifGotCanvas = ref(false);
 
     //工具类，获取canvas
     function canvasUtils() {
@@ -109,6 +127,9 @@ export default {
         })
         .exec((res) => {
           console.log("Select", res);
+          if (res.length >= 1) {
+            ifGotCanvas.value = true;
+          }
           let canvasNode = res[0];
           let canvas = canvasNode.node;
           let ctx = canvas.getContext("2d");
