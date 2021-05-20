@@ -21,16 +21,43 @@
       >{{ ifReConnect ? "正在重连" : "重新连接" }}</at-button
     >
   </view>
+  <view class="stu-num-container">
+    <view>
+      <text class="ws-text">{{ "已加入教室：" }}</text>
+      <text class="num-text" style="margin-right: 0.3em">{{
+        entry_stu_num
+      }}</text>
+      <text class="ws-text">人</text>
+    </view>
+    <view>
+      <text class="ws-text">{{ "已关联位置：" }}</text>
+      <text class="num-text" style="margin-right: 0.3em">{{
+        located_stu_num
+      }}</text>
+      <text class="ws-text">人</text>
+    </view>
+  </view>
+  <view class="notice-container">
+    <at-noticebar
+      showMore
+      :single="ifShowSingle"
+      :moreText="ifShowSingle?'查看更多':'点击收起'"
+      :onGotoMore="onclickShowMore"
+      style="white-space: pre-wrap"
+      >{{ notice }}</at-noticebar
+    >
+  </view>
 </template>
 <script>
 import { ref } from "vue";
 import "./index.scss";
 import Taro from "@tarojs/taro";
-import { AtAvatar, AtButton } from "taro-ui-vue3";
+import { AtAvatar, AtButton, AtNoticebar } from "taro-ui-vue3";
 export default {
   components: {
     AtButton,
     AtAvatar,
+    AtNoticebar,
   },
   mounted() {
     this.GetWebSocket();
@@ -47,6 +74,23 @@ export default {
     const ifReConnect = ref(false); //是否正在重连
     const s_name = ref("教师"); //用户姓名
     const s_id = ref("null"); //用户ID
+    const total_stu_num = ref(0); //总人数
+    const entry_stu_num = ref(30); //已经加入教室的人数
+    const located_stu_num = ref(28); //已经关联位置的人数
+    const notice = ref("通知栏消息：欢迎进入！"); //系统通知
+    const ifShowSingle = ref(true);
+
+    //更新通知
+    function AddNotice(new_notice) {
+      let nowTime = new Date().toString().split(' ')[4]
+      console.log(nowTime)
+      notice.value = nowTime+"-"+ new_notice+"\n"+notice._rawValue;
+    }
+    function onclickShowMore(){
+      console.log("Show more",ifShowSingle)
+      ifShowSingle.value = !ifShowSingle._rawValue
+    }
+
     //连接Websocket
     function GetWebSocket() {
       ifReConnect.value = true;
@@ -54,10 +98,16 @@ export default {
         url: "ws://123.207.136.134:9010/ajaxchattest",
         success: function () {
           console.log("connect success");
+          AddNotice(
+            "系统消息：服务器连接成功"
+          );
         },
         fail: function () {
           ifReConnect.value = false;
           console.log("connect fail");
+          AddNotice(
+            "系统消息：服务器连接成功"
+          );
         },
       }).then((task) => {
         task.onOpen(function () {
@@ -69,6 +119,7 @@ export default {
         task.onMessage(function (msg) {
           console.log("onMessage: ", msg);
           //task.close();
+          AddNotice(nowDate+"服务器消息：" + msg);
         });
         task.onError(function () {
           wsState.value = 2;
@@ -79,6 +130,9 @@ export default {
             duration: 1000,
           });
           console.log("onError");
+          AddNotice(
+            "系统消息：服务器连接断开"
+          );
         });
         task.onClose(function (e) {
           wsState.value = 3;
@@ -98,6 +152,11 @@ export default {
       ifReConnect,
       wsState,
       s_name,
+      entry_stu_num,
+      located_stu_num,
+      notice,
+      ifShowSingle,
+      onclickShowMore
     };
   },
 };
@@ -108,6 +167,15 @@ export default {
   display: flex;
   align-items: center;
 }
+.notice-container {
+  margin: 0 5vw 0 5vw;
+}
+.stu-num-container {
+  margin: 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .welcome-text {
   margin-left: 40px;
   font-size: 40px;
@@ -116,5 +184,9 @@ export default {
 .ws-text {
   font-size: 30px;
   font-weight: normal;
+}
+.num-text {
+  font-size: 50px;
+  font-weight: bolder;
 }
 </style>
