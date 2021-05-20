@@ -21,15 +21,15 @@
       >{{ ifReConnect ? "正在重连" : "重新连接" }}</at-button
     >
   </view>
-  <view class="stu-num-container" @tap="canvasUtils">
-    <view>
+  <view class="stu-num-container">
+    <view @tap="canvasUtils">
       <text class="ws-text">{{ "已加入教室：" }}</text>
       <text class="num-text" style="margin-right: 0.3em">{{
         entry_stu_num
       }}</text>
       <text class="ws-text">人</text>
     </view>
-    <view>
+    <view @tap="loadImg">
       <text class="ws-text">{{ "已关联位置：" }}</text>
       <text class="num-text" style="margin-right: 0.3em">{{
         located_stu_num
@@ -49,9 +49,9 @@
     >
   </view>
   <canvas
-    class="classroom-canvas"
     type="2d"
     id="classroomCanvas"
+    class="classroom-canvas"
     disable-scroll="true"
     :onTouchmove="TouchMove"
     :onTouchstart="TouchStart"
@@ -59,7 +59,7 @@
   ></canvas>
 </template>
 <script>
-import { ref, onMounted, onBeforeUpdate } from "vue";
+import { ref, onBeforeUpdate } from "vue";
 import "./index.scss";
 import Taro from "@tarojs/taro";
 import { AtAvatar, AtButton, AtNoticebar } from "taro-ui-vue3";
@@ -71,12 +71,12 @@ export default {
   },
   onReady() {
     console.log("on ready");
-    //this.canvasUtils(); //获取canvas「出错」
+    this.canvasUtils(); //获取canvas「出错」
     this.GetWebSocket();
     this.loadImg();
   },
   setup() {
-    //FIXME 由于框架的问题，无法在onReady()生命周期取到canvas，希望之后可以被修复
+    //TODO 由于框架的问题，无法在onReady()生命周期取到canvas，等被官方团队修复再开放这个接口
     /**
         目标写法：
         onReady() {
@@ -91,7 +91,8 @@ export default {
       if (!ifGotCanvas._rawValue) {
         canvasUtils();
       }
-      console.log("Component is onBeforeUpdate!");
+      loadImg();
+      console.log("Component is onBeforeUpdate！！！！！！！!");
     });
     //ws的四种状态对应样式
     const stateList = [
@@ -115,11 +116,12 @@ export default {
     const touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
     const avaters = ref(null);
     const canvas_scal = ref(null); //canvas尺寸
-    const ifGotCanvas = ref(false);
+    const ifGotCanvas = ref(false); //是否已获取到canvas
+    const ifGotImg = ref(false); //是否已经加载好图片资源
 
     //工具类，获取canvas
     function canvasUtils() {
-      Taro.createSelectorQuery()
+      wx.createSelectorQuery()
         .select("#classroomCanvas")
         .fields({
           node: true,
@@ -127,12 +129,15 @@ export default {
         })
         .exec((res) => {
           console.log("Select", res);
-          if (res.length >= 1) {
+          if (res[0] !== null) {
             ifGotCanvas.value = true;
+            console.log("已获取到canvas");
+          } else {
+            console.log("未获取到canvas");
           }
-          let canvasNode = res[0];
-          let canvas = canvasNode.node;
-          let ctx = canvas.getContext("2d");
+          const canvasNode = res[0];
+          const canvas = canvasNode.node;
+          const ctx = canvas.getContext("2d");
           // 获取设备像素比调整画布尺寸，并缩放坐标系
           const dpr = wx.getSystemInfoSync().pixelRatio;
           canvas.width = canvasNode.width * dpr;
@@ -144,7 +149,6 @@ export default {
           console.log("CanvasNode scal:", canvasNode.width, canvasNode.height);
           console.log("Canvas scal:", canvas_scal.value);
           ctx.scale(dpr, dpr);
-
           console.log(canvas, ctx);
           C_canvas.value = canvas;
           C_ctx.value = ctx;
@@ -166,24 +170,42 @@ export default {
 
     //加载头像
     function loadImg() {
-      //let canvas = C_canvas._rawValue;
-      const canvas = wx.createOffscreenCanvas({
-        type: "2d",
-        width: 150,
-        height: 150,
-      });
-      const img = canvas.createImage();
-      img.src =
-        "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg";
-      avaters.value = img;
+      //TODO 目前很多设备还不支持离屏canvas 等以后再开放这个接口
+      // 获取 context。注意这里必须要与创建时的 type 一致
+      // const canvas = wx.createOffscreenCanvas({
+      //   type: "2d",
+      //   width: 150,
+      //   height: 150,
+      // });
+      if (ifGotCanvas._rawValue) {
+        let canvas = C_canvas._rawValue;
+        const img = canvas.createImage();
+        // 等待图片加载
+        img.onload = () => {
+          console.log("图片加载成功");
+          ifGotImg.value = true;
+        };
+        img.onerror = (e) => {
+          console.log("图片加载失败");
+        };
+        img.src =
+          "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
+        avaters.value = img;
+      } else {
+        console.log("还没有canvas实例，暂不加载");
+        ifGotImg.value = false;
+      }
     }
 
     //绘制测试
     function tryToDraw(x, y) {
       let ctx = C_ctx._rawValue;
-      //ctx.clearRect(0, 0, 100, 100);
       cleanAll(true);
-      ctx.drawImage(avaters.value, x, y, 40, 40);
+      if (ifGotImg._rawValue) {
+        ctx.drawImage(avaters.value, x, y, 40, 40);
+      } else {
+        loadImg();
+      }
     }
     //debug小球
     function drawBall(x, y, R, color) {
@@ -261,7 +283,6 @@ export default {
     function onclickShowMore() {
       ifShowSingle.value = !ifShowSingle._rawValue;
     }
-
     //连接Websocket
     function GetWebSocket() {
       ifReConnect.value = true;
