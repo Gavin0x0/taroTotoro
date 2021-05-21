@@ -59,7 +59,7 @@
   ></canvas>
 </template>
 <script>
-import { ref, onBeforeUpdate } from "vue";
+import { ref, onBeforeUpdate, onMounted } from "vue";
 import "./index.scss";
 import Taro from "@tarojs/taro";
 import { AtAvatar, AtButton, AtNoticebar } from "taro-ui-vue3";
@@ -87,8 +87,12 @@ export default {
         },
         当前折中的方案是设一个flag判断是否已获取到canvas,在onBeforeUpdate()中获取canvas
      */
+    onMounted(() => {
+      addMockStu();
+      console.log(StuList);
+    });
     onBeforeUpdate(() => {
-      if (!ifGotCanvas._rawValue) {
+      if (!ifGotCanvas) {
         canvasUtils();
       }
       loadImg();
@@ -110,18 +114,29 @@ export default {
     const located_stu_num = ref(28); //已经关联位置的人数
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
     const ifShowSingle = ref(true); //是否显示单行
-    const C_canvas = ref(null); //canvas实例
-    const C_ctx = ref(null); //canvas绘制器
-    const touchStartXY = ref([0, 0]); //触摸起始点
-    const touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
-    const avaters = ref(null);
-    const canvas_scal = ref(null); //canvas尺寸
-    const ifGotCanvas = ref(false); //是否已获取到canvas
-    const ifGotImg = ref(false); //是否已经加载好图片资源
-    let StuList = [
-      {stu_name:"Troy",avater:null,pos:[0,0]},
-      {stu_name:"Levi",avater:null,pos:[1,1]}
-      ];
+    //Canvas相关变量
+    let touchStartXY = [0, 0]; //触摸起始点
+    let touchSetXY = [0, 0]; //触摸结束点「放置位置」
+    let canvas_size = null; //canvas尺寸
+    let ifGotImg = false; //是否已经加载好图片资源
+    let C_canvas = null; //canvas实例
+    let C_ctx = null; //canvas绘制器
+    let ifGotCanvas = false; //是否已获取到canvas
+    let ifMultiTouch = false; //是否多指触控
+    let touch_init_Distance = 0; //双指间初始距离
+    let change_Distance = 0; //双指间距离
+    let canvas_scal = 1; //缩放比例
+    //逻辑内数据
+    let StuList = []; //学生列表
+    //TODO 扩充学生列表，测试用
+    function addMockStu() {
+      for (let i = 0; i <= 8; i++) {
+        for (let j = 0; j <= 8; j++) {
+          let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
+          StuList.push(stu);
+        }
+      }
+    }
 
     //工具类，获取canvas
     function canvasUtils() {
@@ -134,7 +149,7 @@ export default {
         .exec((res) => {
           console.log("Select", res);
           if (res[0] !== null) {
-            ifGotCanvas.value = true;
+            ifGotCanvas = true;
             console.log("已获取到canvas");
           } else {
             console.log("未获取到canvas");
@@ -144,24 +159,25 @@ export default {
           const ctx = canvas.getContext("2d");
           // 获取设备像素比调整画布尺寸，并缩放坐标系
           const dpr = wx.getSystemInfoSync().pixelRatio;
+          console.log("设备dpr：", dpr);
           canvas.width = canvasNode.width * dpr;
           canvas.height = canvasNode.height * dpr;
 
           // 设置 canvas 坐标原点 「暂不设置」
           //ctx.translate(canvas.width / 2, canvas.height / 2);
-          canvas_scal.value = [canvasNode.width, canvasNode.height];
+          canvas_size = [canvasNode.width, canvasNode.height];
           console.log("CanvasNode scal:", canvasNode.width, canvasNode.height);
-          console.log("Canvas scal:", canvas_scal.value);
+          console.log("Canvas scal:", canvas_size);
           ctx.scale(dpr, dpr);
           console.log(canvas, ctx);
-          C_canvas.value = canvas;
-          C_ctx.value = ctx;
+          C_canvas = canvas;
+          C_ctx = ctx;
         });
     }
     //清空画布
     function cleanAll(preserveTransform) {
-      let canvas = C_canvas._rawValue;
-      let ctx = C_ctx._rawValue;
+      let canvas = C_canvas;
+      let ctx = C_ctx;
       if (preserveTransform) {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -181,61 +197,49 @@ export default {
       //   width: 150,
       //   height: 150,
       // });
-      if (ifGotCanvas._rawValue) {
-        let canvas = C_canvas._rawValue;
+      if (ifGotCanvas) {
+        let canvas = C_canvas;
         const img = canvas.createImage();
         // 等待图片加载
         img.onload = () => {
           console.log("图片加载成功");
-          ifGotImg.value = true;
+          ifGotImg = true;
         };
         img.onerror = (e) => {
           console.log("图片加载失败");
         };
         img.src =
           "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
-        avaters.value = img;
         //TODO 改为对应用户的头像
-        StuList[0].avater =img; 
-        StuList[1].avater =img; 
+        for (let s in StuList) {
+          StuList[s].avater = img;
+        }
       } else {
         console.log("还没有canvas实例，暂不加载");
-        ifGotImg.value = false;
+        ifGotImg = false;
       }
     }
 
-    //TODO 绘制测试  即将删除此测试函数
-    // function tryToDraw(x, y) {
-    //   let ctx = C_ctx._rawValue;
-    //   cleanAll(true);
-    //   if (ifGotImg._rawValue) {
-    //     ctx.drawImage(avaters.value, x, y, 40, 40);
-    //   } else {
-    //     loadImg();
-    //   }
-    // }
-
     //绘制单个学生
-    function DrawStu(ctx,stu) {
-      if (ifGotImg._rawValue) {
-        ctx.drawImage(stu.avater, 50*stu.pos[0], 50*stu.pos[1], 40, 40);
+    function DrawStu(ctx, stu) {
+      if (ifGotImg) {
+        ctx.drawImage(stu.avater, 50 * stu.pos[0], 50 * stu.pos[1], 40, 40);
       } else {
         loadImg();
       }
     }
 
-    function DrawStuList(stuList){
-      let ctx = C_ctx._rawValue;
+    function DrawStuList(stuList) {
+      let ctx = C_ctx;
       cleanAll(true);
-      for(let i in stuList){
+      for (let i in stuList) {
         //console.log(stuList[i].stu_name,"POS:",stuList[i].pos,stuList[i].avater)
-        DrawStu(ctx,stuList[i])
+        DrawStu(ctx, stuList[i]);
       }
-
     }
     //debug小球
     function drawBall(x, y, R, color) {
-      let ctx = C_ctx._rawValue;
+      let ctx = C_ctx;
       ctx.beginPath();
       ctx.arc(x, y, R, 0, Math.PI * 2);
       ctx.fillStyle = color;
@@ -244,34 +248,53 @@ export default {
       ctx.stroke();
     }
 
-    //开始触摸
-    function TouchStart(e) {
-      touchStartXY.value = [e.touches[0].x, e.touches[0].y];
-      console.log("触摸开始", e.touches[0].x, e.touches[0].y);
-      drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
-    }
     //计算偏移量，避免出界
     //TODO 出界计算要考虑已画内容大小
     function countLocation(X, Y) {
       let res_loc = [0, 0];
-      res_loc[0] = X - touchStartXY._rawValue[0] + touchSetXY._rawValue[0];
-      res_loc[1] = Y - touchStartXY._rawValue[1] + touchSetXY._rawValue[1];
+      res_loc[0] = X - touchStartXY[0] + touchSetXY[0];
+      res_loc[1] = Y - touchStartXY[1] + touchSetXY[1];
       if (res_loc[0] < 0) {
         res_loc[0] = 0;
-      } else if (res_loc[0] > canvas_scal._rawValue[0] - 40) {
-        res_loc[0] = canvas_scal._rawValue[0] - 40;
+      } else if (res_loc[0] > canvas_size[0] - 40) {
+        res_loc[0] = canvas_size[0] - 40;
       }
       if (res_loc[1] < 0) {
         res_loc[1] = 0;
-      } else if (res_loc[1] > canvas_scal._rawValue[1] - 40) {
-        res_loc[1] = canvas_scal._rawValue[1] - 40;
+      } else if (res_loc[1] > canvas_size[1] - 40) {
+        res_loc[1] = canvas_size[1] - 40;
       }
       return res_loc;
     }
+    //计算双指缩放情况
+    function countDistance(touches) {
+      let a = touches[0].x - touches[1].x;
+      let b = touches[0].y - touches[1].y;
+      change_Distance = Math.sqrt(a * a + b * b) / touch_init_Distance;
+      AddNotice("双指间距离变化量「比例」：" + change_Distance);
+      canvas_scal = change_Distance;
+      AddNotice("缩放比" + change_Distance);
+    }
+
+    //开始触摸
+    function TouchStart(e) {
+      touchStartXY = [e.touches[0].x, e.touches[0].y];
+      console.log("触摸开始", e.touches[0].x, e.touches[0].y);
+      drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
+      //双指时更新初始距离
+      if (e.touches.length == 2) {
+        let a = e.touches[0].x - e.touches[1].x;
+        let b = e.touches[0].y - e.touches[1].y;
+        touch_init_Distance = Math.sqrt(a * a + b * b);
+        AddNotice("双指间距离初始量：" + touch_init_Distance);
+      }
+    }
+
     //手指移动
     function TouchMove(e) {
-      let ctx = C_ctx._rawValue;
+      let ctx = C_ctx;
       if (e.touches.length == 1) {
+        ifMultiTouch = false;
         //console.log("单指触摸", e.touches[0].x, e.touches[0].y);
         let location = countLocation(e.touches[0].x, e.touches[0].y);
         //CanvasContext.transform(number scaleX, number skewX, number skewY, number scaleY, number translateX, number translateY)
@@ -279,30 +302,39 @@ export default {
         drawBall(location[0], location[1], 2, "#b47fd8");
         //tryToDraw(location[0], location[1]);
         ctx.save();
+        ctx.scale(canvas_scal, canvas_scal);
         ctx.translate(location[0], location[1]);
-        DrawStuList(StuList)
+        DrawStuList(StuList);
         ctx.restore();
         // CanvasClassroom(avatarData._rawValue, ctx, transX, transY);
         // ctx.draw();
         drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
       } else {
+        ifMultiTouch = true;
         console.log("多指触摸", e.touches);
+        if (e.touches.length == 2) {
+          //双指触控
+          countDistance(e.touches);
+          ctx.save();
+          ctx.scale(canvas_scal, canvas_scal);
+          DrawStuList(StuList);
+          ctx.restore();
+        }
       }
     }
     //结束触摸
     function TouchEnd(e) {
+      if (ifMultiTouch) {
+      } else {
+        touchSetXY = countLocation(
+          e.changedTouches[0].x,
+          e.changedTouches[0].y
+        );
+        console.log("新起始点：", touchSetXY[0], touchSetXY[1]);
+        drawBall(touchSetXY[0], touchSetXY[1], 5, "#b47fd8");
+      }
       console.log("触摸结束", e.changedTouches[0].x, e.changedTouches[0].y);
-      touchSetXY.value = countLocation(
-        e.changedTouches[0].x,
-        e.changedTouches[0].y
-      );
       drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
-      console.log(
-        "新起始点：",
-        touchSetXY._rawValue[0],
-        touchSetXY._rawValue[1]
-      );
-      drawBall(touchSetXY._rawValue[0], touchSetXY._rawValue[1], 5, "#b47fd8");
     }
     //更新通知
     function AddNotice(new_notice) {
