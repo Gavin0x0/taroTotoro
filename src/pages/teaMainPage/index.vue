@@ -118,6 +118,10 @@ export default {
     const canvas_scal = ref(null); //canvas尺寸
     const ifGotCanvas = ref(false); //是否已获取到canvas
     const ifGotImg = ref(false); //是否已经加载好图片资源
+    let StuList = [
+      {stu_name:"Troy",avater:null,pos:[0,0]},
+      {stu_name:"Levi",avater:null,pos:[1,1]}
+      ];
 
     //工具类，获取canvas
     function canvasUtils() {
@@ -191,21 +195,43 @@ export default {
         img.src =
           "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
         avaters.value = img;
+        //TODO 改为对应用户的头像
+        StuList[0].avater =img; 
+        StuList[1].avater =img; 
       } else {
         console.log("还没有canvas实例，暂不加载");
         ifGotImg.value = false;
       }
     }
 
-    //绘制测试
-    function tryToDraw(x, y) {
-      let ctx = C_ctx._rawValue;
-      cleanAll(true);
+    //TODO 绘制测试  即将删除此测试函数
+    // function tryToDraw(x, y) {
+    //   let ctx = C_ctx._rawValue;
+    //   cleanAll(true);
+    //   if (ifGotImg._rawValue) {
+    //     ctx.drawImage(avaters.value, x, y, 40, 40);
+    //   } else {
+    //     loadImg();
+    //   }
+    // }
+
+    //绘制单个学生
+    function DrawStu(ctx,stu) {
       if (ifGotImg._rawValue) {
-        ctx.drawImage(avaters.value, x, y, 40, 40);
+        ctx.drawImage(stu.avater, 50*stu.pos[0], 50*stu.pos[1], 40, 40);
       } else {
         loadImg();
       }
+    }
+
+    function DrawStuList(stuList){
+      let ctx = C_ctx._rawValue;
+      cleanAll(true);
+      for(let i in stuList){
+        //console.log(stuList[i].stu_name,"POS:",stuList[i].pos,stuList[i].avater)
+        DrawStu(ctx,stuList[i])
+      }
+
     }
     //debug小球
     function drawBall(x, y, R, color) {
@@ -246,12 +272,16 @@ export default {
     function TouchMove(e) {
       let ctx = C_ctx._rawValue;
       if (e.touches.length == 1) {
-        console.log("单指触摸", e.touches[0].x, e.touches[0].y);
+        //console.log("单指触摸", e.touches[0].x, e.touches[0].y);
         let location = countLocation(e.touches[0].x, e.touches[0].y);
         //CanvasContext.transform(number scaleX, number skewX, number skewY, number scaleY, number translateX, number translateY)
-        console.log("位移至X：", location[0], "位移至Y：", location[1]);
+        //console.log("位移至X：", location[0], "位移至Y：", location[1]);
         drawBall(location[0], location[1], 2, "#b47fd8");
-        tryToDraw(location[0], location[1]);
+        //tryToDraw(location[0], location[1]);
+        ctx.save();
+        ctx.translate(location[0], location[1]);
+        DrawStuList(StuList)
+        ctx.restore();
         // CanvasClassroom(avatarData._rawValue, ctx, transX, transY);
         // ctx.draw();
         drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
@@ -344,7 +374,6 @@ export default {
       ifShowSingle,
       onclickShowMore,
       canvasUtils,
-      tryToDraw,
       loadImg,
       TouchStart,
       TouchMove,
