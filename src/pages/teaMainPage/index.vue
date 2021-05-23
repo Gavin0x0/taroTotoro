@@ -122,7 +122,9 @@ export default {
     let C_canvas = null; //canvas实例
     let C_ctx = null; //canvas绘制器
     let ifGotCanvas = false; //是否已获取到canvas
-    let ifMultiTouch = false; //是否多指触控
+    let touchMode = 0; //设置触摸模式 1:单指 2:双指  如果已进入单指模式不可切换到双指 得先置零才能进入双指
+    let multiTouchLastLoc = null; // 设置双指触摸离开时的位置
+    let touchesNum = 0; //屏幕上的手指数信号量
     let touch_init_Distance = 0; //双指间初始距离
     let change_Distance = 0; //双指间距离
     let canvas_scal = 1; //缩放比例
@@ -248,7 +250,7 @@ export default {
       ctx.stroke();
     }
 
-    //计算偏移量，避免出界
+    //计算偏移量，避免出界，传入单指当前坐标，通过单指初始落点计算移动量
     //TODO 出界计算要考虑已画内容大小
     function countLocation(X, Y) {
       let res_loc = [0, 0];
@@ -266,57 +268,92 @@ export default {
       }
       return res_loc;
     }
+
+    //计算偏移量，用于双指缩放的情况，避免出界，传入双指当前坐标，通过双指间中点初始落点计算移动量
+    //TODO 出界计算要考虑已画内容大小
+    function countLocationByMulti(touches) {
+      let res_loc = [0, 0];
+      let X = (touches[0].x + touches[1].x) / 2;
+      let Y = (touches[0].y + touches[1].y) / 2;
+
+      res_loc[0] = X - touchStartXY[0] + touchSetXY[0];
+      res_loc[1] = Y - touchStartXY[1] + touchSetXY[1];
+      drawBall(res_loc[0], res_loc[1], 5, "#1ccd19");
+      if (res_loc[0] < 0) {
+        res_loc[0] = 0;
+      } else if (res_loc[0] > canvas_size[0] - 40) {
+        res_loc[0] = canvas_size[0] - 40;
+      }
+      if (res_loc[1] < 0) {
+        res_loc[1] = 0;
+      } else if (res_loc[1] > canvas_size[1] - 40) {
+        res_loc[1] = canvas_size[1] - 40;
+      }
+      return res_loc;
+    }
+
     //计算双指缩放情况
     function countDistance(touches) {
       let a = touches[0].x - touches[1].x;
       let b = touches[0].y - touches[1].y;
       change_Distance = Math.sqrt(a * a + b * b) / touch_init_Distance;
-      AddNotice("双指间距离变化量「比例」：" + change_Distance);
+      //AddNotice("双指间距离变化量「比例」：" + change_Distance);
       canvas_scal = change_Distance;
-      AddNotice("缩放比" + change_Distance);
+      //AddNotice("缩放比" + change_Distance);
     }
 
     //开始触摸
     function TouchStart(e) {
-      touchStartXY = [e.touches[0].x, e.touches[0].y];
-      console.log("触摸开始", e.touches[0].x, e.touches[0].y);
-      drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
-      //双指时更新初始距离
-      if (e.touches.length == 2) {
+      touchesNum += 1;
+      if (touchMode == 0 && touchesNum == 1) {
+        AddNotice("单指模式");
+        touchStartXY = [e.touches[0].x, e.touches[0].y];
+        console.log("触摸开始", e.touches[0].x, e.touches[0].y);
+        drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
+      } else if (touchMode == 0 && touchesNum == 2) {
+        //双指时更新初始距离
+        AddNotice("双指模式");
         let a = e.touches[0].x - e.touches[1].x;
         let b = e.touches[0].y - e.touches[1].y;
         touch_init_Distance = Math.sqrt(a * a + b * b);
         AddNotice("双指间距离初始量：" + touch_init_Distance);
+        touchStartXY = [
+          (e.touches[0].x + e.touches[1].x) / 2,
+          (e.touches[0].y + e.touches[1].y) / 2,
+        ];
+        drawBall(touchStartXY[0], touchStartXY[1], 15, "#1aad19");
       }
     }
 
     //手指移动
     function TouchMove(e) {
       let ctx = C_ctx;
-      if (e.touches.length == 1) {
-        ifMultiTouch = false;
-        //console.log("单指触摸", e.touches[0].x, e.touches[0].y);
+      if (touchMode == 0 && e.touches.length == 1) {
+        touchMode = 1;
+        AddNotice("锁定单指模式");
+      } else if (touchMode == 0 && e.touches.length == 2) {
+        touchMode = 2;
+        AddNotice("锁定双指模式");
+      }
+      if (touchMode == 1) {
         let location = countLocation(e.touches[0].x, e.touches[0].y);
-        //CanvasContext.transform(number scaleX, number skewX, number skewY, number scaleY, number translateX, number translateY)
-        //console.log("位移至X：", location[0], "位移至Y：", location[1]);
         drawBall(location[0], location[1], 2, "#b47fd8");
-        //tryToDraw(location[0], location[1]);
         ctx.save();
-        ctx.scale(canvas_scal, canvas_scal);
+        //ctx.scale(canvas_scal, canvas_scal);
         ctx.translate(location[0], location[1]);
         DrawStuList(StuList);
         ctx.restore();
-        // CanvasClassroom(avatarData._rawValue, ctx, transX, transY);
-        // ctx.draw();
         drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
-      } else {
-        ifMultiTouch = true;
-        console.log("多指触摸", e.touches);
+      } else if (touchMode == 2) {
+        console.log("双指触摸", e.touches);
         if (e.touches.length == 2) {
+          let location = countLocationByMulti(e.touches);
+          multiTouchLastLoc = location;
           //双指触控
           countDistance(e.touches);
           ctx.save();
-          ctx.scale(canvas_scal, canvas_scal);
+          //ctx.scale(canvas_scal, canvas_scal);
+          ctx.translate(location[0], location[1]);
           DrawStuList(StuList);
           ctx.restore();
         }
@@ -324,17 +361,40 @@ export default {
     }
     //结束触摸
     function TouchEnd(e) {
-      if (ifMultiTouch) {
-      } else {
-        touchSetXY = countLocation(
-          e.changedTouches[0].x,
-          e.changedTouches[0].y
-        );
-        console.log("新起始点：", touchSetXY[0], touchSetXY[1]);
-        drawBall(touchSetXY[0], touchSetXY[1], 5, "#b47fd8");
+      touchesNum -= 1;
+      AddNotice("touchesNum:" + touchesNum);
+      if (touchMode == 1) {
+        if (touchesNum == 0) {
+          touchSetXY = countLocation(
+            e.changedTouches[0].x,
+            e.changedTouches[0].y
+          );
+          console.log("新起始点：", touchSetXY[0], touchSetXY[1]);
+          drawBall(touchSetXY[0], touchSetXY[1], 5, "#b47fd8");
+          console.log("单指触摸结束");
+          AddNotice("单指触摸结束");
+          drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
+          touchMode = 0;
+        }
+      } else if (touchMode == 2) {
+        AddNotice("双指触摸 changeTouches.length:" + e.changedTouches.length);
+        if (touchesNum == 0) {
+          console.log("双指触摸结束", e);
+          touchMode = 0;
+          AddNotice("双指触摸结束");
+          for (let t in e.changedTouches) {
+            drawBall(
+              e.changedTouches[t].x,
+              e.changedTouches[t].y,
+              15,
+              "#b47fd8"
+            );
+          }
+        } else if (touchesNum == 1) {
+          AddNotice("仅离开了一只手指，此时设置新起始点位置");
+          touchSetXY = multiTouchLastLoc;
+        }
       }
-      console.log("触摸结束", e.changedTouches[0].x, e.changedTouches[0].y);
-      drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
     }
     //更新通知
     function AddNotice(new_notice) {
