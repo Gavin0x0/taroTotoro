@@ -39,6 +39,7 @@
     "@tarojs/components": "3.2.1",
     "@tarojs/runtime": "3.2.1",
     "@tarojs/taro": "3.2.1",
+    "mockjs": "^1.1.0",
     "qrcanvas": "^3.1.2",
     "taro-ui-vue3": "^1.0.0-alpha.19",
     "vue": "^3.0.0"

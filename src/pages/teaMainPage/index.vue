@@ -46,6 +46,14 @@
     :onTouchstart="TouchStart"
     :onTouchend="TouchEnd"
   ></canvas>
+  <view class="stu-num-container" v-if="selectedStu">
+    <view>
+      <text class="ws-text">{{ "当前选中：" }}</text>
+      <text class="num-text" style="margin-right: 0.3em">{{
+        selectedStu.stu_name
+      }}</text>
+    </view>
+  </view>
   <view class="notice-container easy-animation">
     <at-noticebar
       showMore
@@ -114,6 +122,7 @@ export default {
     const located_stu_num = ref(28); //已经关联位置的人数
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
     const ifShowSingle = ref(true); //是否显示单行
+    const selectedStu = ref(null); //被选中的学生
     //Canvas相关变量
     let touchStartXY = [0, 0]; //触摸起始点
     let touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
@@ -136,22 +145,26 @@ export default {
     const _classroom_border = 2; //定义 教室外轮廓宽度
     //逻辑内数据
     let StuList = []; //学生列表
+
     //TODO 扩充学生列表，测试用
     function addMockStu() {
-      let size = 10;
+      var Mock = require("mockjs");
+      let size = 3;
       for (let i = 0; i <= size; i++) {
         for (let j = 0; j <= size; j++) {
           if (i % 2 == 0 && j % 2 == 0) {
             let stu = {
-              stu_name: "行:" + j + " 列:" + i,
-              avater: null,
+              stu_name: Mock.Random.cname(),
+              avatar: null,
+              avater_url: Mock.Random.image("120x120", "#6190e8", "Hello"),
               pos: [i, j],
             };
             StuList.push(stu);
           } else if (j % 2 == 1 && i % 2 == 1) {
             let stu = {
-              stu_name: "行:" + j + " 列:" + i,
-              avater: null,
+              stu_name: Mock.Random.cname(),
+              avatar: null,
+              avater_url: Mock.Random.image("120x120", "#6190e8", "Hello"),
               pos: [i, j],
             };
             StuList.push(stu);
@@ -226,22 +239,28 @@ export default {
       // });
       if (ifGotCanvas) {
         let canvas = C_canvas;
-        const img = canvas.createImage();
-        // 等待图片加载
-        img.onload = () => {
-          console.log("图片加载成功");
-          //AddNotice("图片加载成功");
-          ifGotImg = true;
-        };
-        img.onerror = (e) => {
-          console.log("图片加载失败");
-          AddNotice("图片加载失败");
-        };
-        img.src = require("../../assets/avatar.png"); // 要加载的图片 url
-        // img.src =
-        //   "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
-        //TODO 改为对应用户的头像
+        let img_num = StuList.length;
+        let success_num = 0;
         for (let s in StuList) {
+          const img = canvas.createImage();
+          // 等待图片加载
+          img.onload = () => {
+            console.log("图片加载成功");
+            success_num += 1;
+            //AddNotice("图片加载成功");
+            console.log("加载进度：" + success_num + "/" + img_num);
+            if (success_num == img_num) {
+              console.log("全部加载完毕");
+              ifGotImg = true;
+            }
+          };
+          img.onerror = (e) => {
+            console.log("图片加载失败");
+            AddNotice("图片加载失败");
+          };
+          //img.src = require("../../assets/avatar.png"); // 要加载的图片 url
+          img.src = StuList[s].avater_url; // 要加载的图片 url
+          //TODO 改为对应用户的头像
           StuList[s].avater = img;
         }
       } else {
@@ -276,7 +295,7 @@ export default {
         loadImg();
       }
     }
-
+    //绘制全部学生+教室
     function DrawStuList(stuList) {
       let ctx = C_ctx;
       cleanAll(true);
@@ -285,6 +304,7 @@ export default {
         DrawStu(ctx, stuList[i]);
       }
     }
+    //绘制全部学生[不带教室，不清空布局]
     function DrawStuListNotClean(stuList) {
       let ctx = C_ctx;
       for (let i in stuList) {
@@ -409,7 +429,7 @@ export default {
     }
     //根据触碰点判断选择情况
     function selectStuByTouch(touches) {
-      drawBall(touches[0].x, touches[0].y, 5, "#1aad19");
+      //drawBall(touches[0].x, touches[0].y, 5, "#1aad19");
       //AddNotice("触摸点X：" + touches[0].x + "触摸点Y：" + touches[0].y);
       let t_X = (touches[0].x - touchSetXY._rawValue[0]) / canvas_scal;
       let t_Y = (touches[0].y - touchSetXY._rawValue[1]) / canvas_scal;
@@ -418,7 +438,13 @@ export default {
       let coloum_num = parseInt(
         t_Y / (_avatar_size + _avatar_padding + _name_height)
       );
-      drawSelector(row_num, coloum_num);
+      for (let s in StuList) {
+        if (StuList[s].pos[0] == row_num && StuList[s].pos[1] == coloum_num) {
+          selectedStu.value = StuList[s];
+          AddNotice("选中了：" + StuList[s].stu_name);
+          drawSelector(row_num, coloum_num);
+        }
+      }
       AddNotice("行：" + coloum_num + "  列：" + row_num);
     }
     //绘制选择器
@@ -624,6 +650,7 @@ export default {
       TouchStart,
       TouchMove,
       TouchEnd,
+      selectedStu,
     };
   },
 };
