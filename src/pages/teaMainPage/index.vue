@@ -130,9 +130,9 @@ export default {
     let canvas_init_scal = null; //缩放比初始值
     let canvas_scal = 1; //当前缩放比例
     let classroom_size = [0, 0]; //教室大小，宽度，高度
-    const _avatar_size = 40; //定义 头像尺寸
+    const _avatar_size = 60; //定义 头像尺寸
     const _avatar_padding = 10; //定义 头像外边距
-    const _blackboard_height = 20; //定义 黑板占用高度
+    const _blackboard_height = 40; //定义 黑板占用高度
     const _classroom_border = 2; //定义教室外轮廓宽度Î
     //逻辑内数据
     let StuList = []; //学生列表
@@ -140,8 +140,13 @@ export default {
     function addMockStu() {
       for (let i = 0; i <= 4; i++) {
         for (let j = 0; j <= 4; j++) {
-          let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
-          StuList.push(stu);
+          if (i % 2 == 0 && j % 2 == 0) {
+            let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
+            StuList.push(stu);
+          } else if (j % 2 == 1 && i % 2 == 1) {
+            let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
+            StuList.push(stu);
+          }
         }
       }
       classroom_size = [
@@ -215,7 +220,7 @@ export default {
         // 等待图片加载
         img.onload = () => {
           console.log("图片加载成功");
-          AddNotice("图片加载成功");
+          //AddNotice("图片加载成功");
           ifGotImg = true;
         };
         img.onerror = (e) => {
@@ -259,7 +264,7 @@ export default {
         DrawStu(ctx, stuList[i]);
       }
     }
-    //绘制教室边框
+    //绘制教室边框+黑板
     function DrawClassroom() {
       let ctx = C_ctx;
       ctx.fillStyle = "#6190e8";
@@ -276,6 +281,22 @@ export default {
         classroom_size[0] - 2 * _classroom_border,
         classroom_size[1] - 2 * _classroom_border
       );
+      ctx.fillStyle = "#2b2b2b";
+      ctx.fillRect(
+        (-1 * _avatar_padding) / 2 + _classroom_border * 2,
+        (-1 * _avatar_padding) / 2 + classroom_size[1] - _blackboard_height,
+        classroom_size[0] - 4 * _classroom_border,
+        _blackboard_height + -2 * _classroom_border
+      );
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        "黑板",
+        (-1 * _avatar_padding) / 2 + classroom_size[0] / 2,
+        (-1 * _avatar_padding) / 2 + classroom_size[1] - _blackboard_height / 2
+      );
     }
 
     function DrawAvatarSize() {
@@ -288,6 +309,15 @@ export default {
           canvas_size[1] / canvas_scal / 2 - _avatar_size / 2,
           _avatar_size,
           _avatar_size
+        );
+        ctx.font = "48px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          "调整大小:" + (canvas_scal * 100).toFixed(2) + "%",
+          canvas_size[0] / canvas_scal / 2 -
+            _avatar_size / 2 +
+            _avatar_size / 2,
+          canvas_size[1] / canvas_scal / 2 - _avatar_size / 2 - _avatar_size / 2
         );
       } else {
         loadImg();
@@ -357,7 +387,7 @@ export default {
         AddNotice("单指模式");
         touchStartXY = [e.touches[0].x, e.touches[0].y];
         console.log("触摸开始", e.touches[0].x, e.touches[0].y);
-        drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
+        //drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
       } else if (touchMode == 0 && touchesNum == 2) {
         //双指时更新初始距离
         AddNotice("双指模式");
@@ -370,7 +400,7 @@ export default {
           (e.touches[0].x + e.touches[1].x) / 2,
           (e.touches[0].y + e.touches[1].y) / 2,
         ];
-        drawBall(touchStartXY[0], touchStartXY[1], 15, "#1aad19");
+        //drawBall(touchStartXY[0], touchStartXY[1], 15, "#1aad19");
       }
     }
 
@@ -386,13 +416,13 @@ export default {
       }
       if (touchMode == 1) {
         let location = countLocation(e.touches[0].x, e.touches[0].y);
-        drawBall(location[0], location[1], 2, "#b47fd8");
+        //drawBall(location[0], location[1], 2, "#b47fd8");
         ctx.save();
         ctx.translate(location[0], location[1]);
         ctx.scale(canvas_scal, canvas_scal);
         DrawStuList(StuList);
         ctx.restore();
-        drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
+        //drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
       } else if (touchMode == 2) {
         console.log("双指触摸", e.touches);
         if (e.touches.length == 2) {
@@ -416,10 +446,10 @@ export default {
             e.changedTouches[0].y
           );
           console.log("新起始点：", touchSetXY[0], touchSetXY[1]);
-          drawBall(touchSetXY[0], touchSetXY[1], 5, "#b47fd8");
+          //drawBall(touchSetXY[0], touchSetXY[1], 5, "#b47fd8");
           console.log("单指触摸结束");
           AddNotice("单指触摸结束");
-          drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
+          //drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
           touchMode = 0;
         }
       } else if (touchMode == 2) {
@@ -443,7 +473,7 @@ export default {
     //更新通知
     function AddNotice(new_notice) {
       let nowTime = new Date().toString().split(" ")[4];
-      console.log(nowTime);
+      //console.log(nowTime);
       notice.value = nowTime + "-" + new_notice + "\n" + notice._rawValue;
     }
     function onclickShowMore() {
