@@ -37,6 +37,15 @@
       <text class="ws-text">人</text>
     </view>
   </view>
+  <canvas
+    type="2d"
+    id="classroomCanvas"
+    class="classroom-canvas"
+    disable-scroll="true"
+    :onTouchmove="TouchMove"
+    :onTouchstart="TouchStart"
+    :onTouchend="TouchEnd"
+  ></canvas>
   <view class="notice-container easy-animation">
     <at-noticebar
       showMore
@@ -48,15 +57,6 @@
       >{{ notice }}</at-noticebar
     >
   </view>
-  <canvas
-    type="2d"
-    id="classroomCanvas"
-    class="classroom-canvas"
-    disable-scroll="true"
-    :onTouchmove="TouchMove"
-    :onTouchstart="TouchStart"
-    :onTouchend="TouchEnd"
-  ></canvas>
 </template>
 <script>
 import { ref, onBeforeUpdate, onMounted } from "vue";
@@ -138,20 +138,29 @@ export default {
     let StuList = []; //学生列表
     //TODO 扩充学生列表，测试用
     function addMockStu() {
-      for (let i = 0; i <= 4; i++) {
-        for (let j = 0; j <= 4; j++) {
+      let size = 10;
+      for (let i = 0; i <= size; i++) {
+        for (let j = 0; j <= size; j++) {
           if (i % 2 == 0 && j % 2 == 0) {
-            let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
+            let stu = {
+              stu_name: "行:" + j + " 列:" + i,
+              avater: null,
+              pos: [i, j],
+            };
             StuList.push(stu);
           } else if (j % 2 == 1 && i % 2 == 1) {
-            let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
+            let stu = {
+              stu_name: "行:" + j + " 列:" + i,
+              avater: null,
+              pos: [i, j],
+            };
             StuList.push(stu);
           }
         }
       }
       classroom_size = [
-        5 * (_avatar_size + _avatar_padding),
-        5 * (_avatar_size + _avatar_padding + _name_height) +
+        (size + 1) * (_avatar_size + _avatar_padding),
+        (size + 1) * (_avatar_size + _avatar_padding + _name_height) +
           _blackboard_height,
       ]; //列人数*50，行数*50+20
     }
@@ -228,8 +237,9 @@ export default {
           console.log("图片加载失败");
           AddNotice("图片加载失败");
         };
-        img.src =
-          "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
+        img.src = require("../../assets/avatar.png"); // 要加载的图片 url
+        // img.src =
+        //   "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
         //TODO 改为对应用户的头像
         for (let s in StuList) {
           StuList[s].avater = img;
@@ -241,7 +251,7 @@ export default {
       }
     }
 
-    //绘制单个学生
+    //绘制单个学生头像+姓名
     function DrawStu(ctx, stu) {
       if (ifGotImg) {
         ctx.drawImage(
@@ -250,6 +260,17 @@ export default {
           (_avatar_size + _avatar_padding + _name_height) * stu.pos[1],
           _avatar_size,
           _avatar_size
+        );
+        ctx.fillStyle = "#2b2b2b";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(
+          stu.stu_name,
+          (_avatar_size + _avatar_padding) * stu.pos[0] + _avatar_size / 2,
+          (_avatar_size + _avatar_padding + _name_height) * stu.pos[1] +
+            _avatar_size +
+            _avatar_padding / 2
         );
       } else {
         loadImg();
@@ -261,7 +282,12 @@ export default {
       cleanAll(true);
       DrawClassroom();
       for (let i in stuList) {
-        //console.log(stuList[i].stu_name,"POS:",stuList[i].pos,stuList[i].avater)
+        DrawStu(ctx, stuList[i]);
+      }
+    }
+    function DrawStuListNotClean(stuList) {
+      let ctx = C_ctx;
+      for (let i in stuList) {
         DrawStu(ctx, stuList[i]);
       }
     }
@@ -299,7 +325,7 @@ export default {
         (-1 * _avatar_padding) / 2 + classroom_size[1] - _blackboard_height / 2
       );
     }
-
+    //绘制缩放时的头像
     function DrawAvatarSize() {
       let ctx = C_ctx;
       cleanAll(true);
@@ -334,7 +360,6 @@ export default {
       ctx.fill();
       ctx.stroke();
     }
-
     //计算偏移量，避免出界，传入单指当前坐标，通过单指初始落点计算移动量
     //TODO 出界计算要考虑已画内容大小
     function countLocation(X, Y) {
@@ -373,7 +398,6 @@ export default {
       }
       return res_loc;
     }
-
     //计算双指缩放情况
     function countDistance(touches) {
       let a = touches[0].x - touches[1].x;
@@ -383,12 +407,51 @@ export default {
       canvas_scal = canvas_init_scal * change_Distance;
       //AddNotice("缩放比" + change_Distance);
     }
-
+    //根据触碰点判断选择情况
+    function selectStuByTouch(touches) {
+      drawBall(touches[0].x, touches[0].y, 5, "#1aad19");
+      //AddNotice("触摸点X：" + touches[0].x + "触摸点Y：" + touches[0].y);
+      let t_X = (touches[0].x - touchSetXY._rawValue[0]) / canvas_scal;
+      let t_Y = (touches[0].y - touchSetXY._rawValue[1]) / canvas_scal;
+      AddNotice("相对触摸点X：" + t_X + "相对触摸点Y：" + t_Y);
+      let row_num = parseInt(t_X / (_avatar_size + _avatar_padding));
+      let coloum_num = parseInt(
+        t_Y / (_avatar_size + _avatar_padding + _name_height)
+      );
+      drawSelector(row_num, coloum_num);
+      AddNotice("行：" + coloum_num + "  列：" + row_num);
+    }
+    //绘制选择器
+    function drawSelector(row, coloum) {
+      let ctx = C_ctx;
+      cleanAll(true);
+      ctx.save();
+      ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
+      ctx.scale(canvas_scal, canvas_scal);
+      DrawClassroom();
+      ctx.fillStyle = "#1aad19";
+      ctx.fillRect(
+        (_avatar_size + _avatar_padding) * row - _avatar_padding / 2,
+        (_avatar_size + _avatar_padding + _name_height) * coloum -
+          _avatar_padding / 2,
+        _avatar_size + _avatar_padding,
+        _avatar_size + _avatar_padding + _name_height
+      );
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(
+        (_avatar_size + _avatar_padding) * row,
+        (_avatar_size + _avatar_padding + _name_height) * coloum + _avatar_size,
+        _avatar_size,
+        _name_height
+      );
+      DrawStuListNotClean(StuList);
+      ctx.restore();
+    }
     //开始触摸
     function TouchStart(e) {
       touchesNum += 1;
       if (touchMode == 0 && touchesNum == 1) {
-        AddNotice("单指模式");
+        //AddNotice("单指模式");
         touchStartXY = [e.touches[0].x, e.touches[0].y];
         console.log("触摸开始", e.touches[0].x, e.touches[0].y);
         //drawBall(e.touches[0].x, e.touches[0].y, 5, "#1aad19");
@@ -407,7 +470,6 @@ export default {
         //drawBall(touchStartXY[0], touchStartXY[1], 15, "#1aad19");
       }
     }
-
     //手指移动
     function TouchMove(e) {
       let ctx = C_ctx;
@@ -442,27 +504,25 @@ export default {
     //结束触摸
     function TouchEnd(e) {
       touchesNum -= 1;
-      AddNotice("touchesNum:" + touchesNum);
+      //AddNotice("touchesNum:" + touchesNum);
       if (touchMode == 1) {
         if (touchesNum == 0) {
           touchSetXY.value = countLocation(
             e.changedTouches[0].x,
             e.changedTouches[0].y
           );
-          drawBall(touchSetXY.value[0], touchSetXY.value[1], 15, "#ff5252");
           console.log(
             "新起始点：",
             touchSetXY._rawValue[0],
             touchSetXY._rawValue[1]
           );
-          drawBall(
-            touchSetXY._rawValue[0],
-            touchSetXY._rawValue[1],
-            5,
-            "#b47fd8"
-          );
           console.log("单指触摸结束");
-          AddNotice("单指触摸结束");
+          AddNotice(
+            "单指触摸结束X:" +
+              touchSetXY._rawValue[0] +
+              "Y:" +
+              touchSetXY._rawValue[1]
+          );
           //drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
           touchMode = 0;
         }
@@ -475,7 +535,6 @@ export default {
             canvas_size[0] / 2 - (classroom_size[0] / 2) * canvas_scal,
             canvas_size[1] / 2 - (classroom_size[1] / 2) * canvas_scal,
           ];
-          drawBall(touchSetXY.value[0], touchSetXY.value[1], 15, "#ff5252");
           ctx.save();
           ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
           ctx.scale(canvas_scal, canvas_scal);
@@ -487,6 +546,8 @@ export default {
         } else if (touchesNum == 1) {
           AddNotice("仅离开了一只手指");
         }
+      } else if (touchMode == 0) {
+        selectStuByTouch(e.changedTouches);
       }
     }
     //更新通知
