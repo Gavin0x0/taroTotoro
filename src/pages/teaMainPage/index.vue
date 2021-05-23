@@ -116,14 +116,13 @@ export default {
     const ifShowSingle = ref(true); //是否显示单行
     //Canvas相关变量
     let touchStartXY = [0, 0]; //触摸起始点
-    let touchSetXY = [0, 0]; //触摸结束点「放置位置」
+    let touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
     let canvas_size = null; //canvas尺寸
     let ifGotImg = false; //是否已经加载好图片资源
     let C_canvas = null; //canvas实例
     let C_ctx = null; //canvas绘制器
     let ifGotCanvas = false; //是否已获取到canvas
     let touchMode = 0; //设置触摸模式 1:单指 2:双指  如果已进入单指模式不可切换到双指 得先置零才能进入双指
-    let multiTouchLastLoc = null; // 设置双指触摸离开时的位置
     let touchesNum = 0; //屏幕上的手指数信号量
     let touch_init_Distance = 0; //双指间初始距离
     let change_Distance = 0; //双指间距离
@@ -132,8 +131,9 @@ export default {
     let classroom_size = [0, 0]; //教室大小，宽度，高度
     const _avatar_size = 60; //定义 头像尺寸
     const _avatar_padding = 10; //定义 头像外边距
+    const _name_height = 20; //定义 名字高度
     const _blackboard_height = 40; //定义 黑板占用高度
-    const _classroom_border = 2; //定义教室外轮廓宽度Î
+    const _classroom_border = 2; //定义 教室外轮廓宽度
     //逻辑内数据
     let StuList = []; //学生列表
     //TODO 扩充学生列表，测试用
@@ -151,7 +151,8 @@ export default {
       }
       classroom_size = [
         5 * (_avatar_size + _avatar_padding),
-        5 * (_avatar_size + _avatar_padding) + _blackboard_height,
+        5 * (_avatar_size + _avatar_padding + _name_height) +
+          _blackboard_height,
       ]; //列人数*50，行数*50+20
     }
 
@@ -246,7 +247,7 @@ export default {
         ctx.drawImage(
           stu.avater,
           (_avatar_size + _avatar_padding) * stu.pos[0],
-          (_avatar_size + _avatar_padding) * stu.pos[1],
+          (_avatar_size + _avatar_padding + _name_height) * stu.pos[1],
           _avatar_size,
           _avatar_size
         );
@@ -338,8 +339,8 @@ export default {
     //TODO 出界计算要考虑已画内容大小
     function countLocation(X, Y) {
       let res_loc = [0, 0]; //原绘制坐标
-      res_loc[0] = X - touchStartXY[0] + touchSetXY[0];
-      res_loc[1] = Y - touchStartXY[1] + touchSetXY[1];
+      res_loc[0] = X - touchStartXY[0] + touchSetXY._rawValue[0];
+      res_loc[1] = Y - touchStartXY[1] + touchSetXY._rawValue[1];
       if (
         res_loc[0] <
         (-1 * classroom_size[0] + _avatar_size + _avatar_padding) * canvas_scal
@@ -350,19 +351,22 @@ export default {
       } else if (res_loc[0] > canvas_size[0] - _avatar_size * canvas_scal) {
         res_loc[0] = canvas_size[0] - _avatar_size * canvas_scal;
       }
+      //Y轴出界判定
       if (
         res_loc[1] <
         (-1 * classroom_size[1] +
           _avatar_size +
           _avatar_padding +
-          _blackboard_height) *
+          _blackboard_height +
+          _name_height) *
           canvas_scal
       ) {
         res_loc[1] =
           (-1 * classroom_size[1] +
             _avatar_size +
             _avatar_padding +
-            _blackboard_height) *
+            _blackboard_height +
+            _name_height) *
           canvas_scal;
       } else if (res_loc[1] > canvas_size[1] - _avatar_size * canvas_scal) {
         res_loc[1] = canvas_size[1] - _avatar_size * canvas_scal;
@@ -441,12 +445,22 @@ export default {
       AddNotice("touchesNum:" + touchesNum);
       if (touchMode == 1) {
         if (touchesNum == 0) {
-          touchSetXY = countLocation(
+          touchSetXY.value = countLocation(
             e.changedTouches[0].x,
             e.changedTouches[0].y
           );
-          console.log("新起始点：", touchSetXY[0], touchSetXY[1]);
-          //drawBall(touchSetXY[0], touchSetXY[1], 5, "#b47fd8");
+          drawBall(touchSetXY.value[0], touchSetXY.value[1], 15, "#ff5252");
+          console.log(
+            "新起始点：",
+            touchSetXY._rawValue[0],
+            touchSetXY._rawValue[1]
+          );
+          drawBall(
+            touchSetXY._rawValue[0],
+            touchSetXY._rawValue[1],
+            5,
+            "#b47fd8"
+          );
           console.log("单指触摸结束");
           AddNotice("单指触摸结束");
           //drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
@@ -457,16 +471,21 @@ export default {
         if (touchesNum == 0) {
           console.log("双指触摸结束", e);
           let ctx = C_ctx;
+          touchSetXY.value = [
+            canvas_size[0] / 2 - (classroom_size[0] / 2) * canvas_scal,
+            canvas_size[1] / 2 - (classroom_size[1] / 2) * canvas_scal,
+          ];
+          drawBall(touchSetXY.value[0], touchSetXY.value[1], 15, "#ff5252");
           ctx.save();
-          ctx.translate(touchSetXY[0], touchSetXY[1]);
+          ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
           ctx.scale(canvas_scal, canvas_scal);
           DrawStuList(StuList);
           ctx.restore();
           touchMode = 0;
+
           AddNotice("双指触摸结束");
         } else if (touchesNum == 1) {
-          AddNotice("仅离开了一只手指，此时设置新起始点位置");
-          //touchSetXY = multiTouchLastLoc;
+          AddNotice("仅离开了一只手指");
         }
       }
     }
