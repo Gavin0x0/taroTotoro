@@ -127,17 +127,27 @@ export default {
     let touchesNum = 0; //屏幕上的手指数信号量
     let touch_init_Distance = 0; //双指间初始距离
     let change_Distance = 0; //双指间距离
-    let canvas_scal = 1; //缩放比例
+    let canvas_init_scal = null; //缩放比初始值
+    let canvas_scal = 1; //当前缩放比例
+    let classroom_size = [0, 0]; //教室大小，宽度，高度
+    const _avatar_size = 40; //定义 头像尺寸
+    const _avatar_padding = 10; //定义 头像外边距
+    const _blackboard_height = 20; //定义 黑板占用高度
+    const _classroom_border = 2; //定义教室外轮廓宽度Î
     //逻辑内数据
     let StuList = []; //学生列表
     //TODO 扩充学生列表，测试用
     function addMockStu() {
-      for (let i = 0; i <= 8; i++) {
-        for (let j = 0; j <= 8; j++) {
+      for (let i = 0; i <= 4; i++) {
+        for (let j = 0; j <= 4; j++) {
           let stu = { stu_name: "Troy", avater: null, pos: [i, j] };
           StuList.push(stu);
         }
       }
+      classroom_size = [
+        5 * (_avatar_size + _avatar_padding),
+        5 * (_avatar_size + _avatar_padding) + _blackboard_height,
+      ]; //列人数*50，行数*50+20
     }
 
     //工具类，获取canvas
@@ -205,10 +215,12 @@ export default {
         // 等待图片加载
         img.onload = () => {
           console.log("图片加载成功");
+          AddNotice("图片加载成功");
           ifGotImg = true;
         };
         img.onerror = (e) => {
           console.log("图片加载失败");
+          AddNotice("图片加载失败");
         };
         img.src =
           "https://tva1.sinaimg.cn/large/007e6d0Xgy1gpfyji5mioj30ip0ipjrd.jpg"; // 要加载的图片 url
@@ -218,6 +230,7 @@ export default {
         }
       } else {
         console.log("还没有canvas实例，暂不加载");
+        AddNotice("还没有canvas实例，暂不加载");
         ifGotImg = false;
       }
     }
@@ -225,7 +238,13 @@ export default {
     //绘制单个学生
     function DrawStu(ctx, stu) {
       if (ifGotImg) {
-        ctx.drawImage(stu.avater, 50 * stu.pos[0], 50 * stu.pos[1], 40, 40);
+        ctx.drawImage(
+          stu.avater,
+          (_avatar_size + _avatar_padding) * stu.pos[0],
+          (_avatar_size + _avatar_padding) * stu.pos[1],
+          _avatar_size,
+          _avatar_size
+        );
       } else {
         loadImg();
       }
@@ -234,9 +253,44 @@ export default {
     function DrawStuList(stuList) {
       let ctx = C_ctx;
       cleanAll(true);
+      DrawClassroom();
       for (let i in stuList) {
         //console.log(stuList[i].stu_name,"POS:",stuList[i].pos,stuList[i].avater)
         DrawStu(ctx, stuList[i]);
+      }
+    }
+    //绘制教室边框
+    function DrawClassroom() {
+      let ctx = C_ctx;
+      ctx.fillStyle = "#6190e8";
+      ctx.fillRect(
+        (-1 * _avatar_padding) / 2,
+        (-1 * _avatar_padding) / 2,
+        classroom_size[0],
+        classroom_size[1]
+      );
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(
+        (-1 * _avatar_padding) / 2 + _classroom_border,
+        (-1 * _avatar_padding) / 2 + _classroom_border,
+        classroom_size[0] - 2 * _classroom_border,
+        classroom_size[1] - 2 * _classroom_border
+      );
+    }
+
+    function DrawAvatarSize() {
+      let ctx = C_ctx;
+      cleanAll(true);
+      if (ifGotImg) {
+        ctx.drawImage(
+          StuList[0].avater,
+          canvas_size[0] / canvas_scal / 2 - _avatar_size / 2,
+          canvas_size[1] / canvas_scal / 2 - _avatar_size / 2,
+          _avatar_size,
+          _avatar_size
+        );
+      } else {
+        loadImg();
       }
     }
     //debug小球
@@ -253,41 +307,35 @@ export default {
     //计算偏移量，避免出界，传入单指当前坐标，通过单指初始落点计算移动量
     //TODO 出界计算要考虑已画内容大小
     function countLocation(X, Y) {
-      let res_loc = [0, 0];
+      let res_loc = [0, 0]; //原绘制坐标
       res_loc[0] = X - touchStartXY[0] + touchSetXY[0];
       res_loc[1] = Y - touchStartXY[1] + touchSetXY[1];
-      if (res_loc[0] < 0) {
-        res_loc[0] = 0;
-      } else if (res_loc[0] > canvas_size[0] - 40) {
-        res_loc[0] = canvas_size[0] - 40;
+      if (
+        res_loc[0] <
+        (-1 * classroom_size[0] + _avatar_size + _avatar_padding) * canvas_scal
+      ) {
+        res_loc[0] =
+          (-1 * classroom_size[0] + _avatar_size + _avatar_padding) *
+          canvas_scal;
+      } else if (res_loc[0] > canvas_size[0] - _avatar_size * canvas_scal) {
+        res_loc[0] = canvas_size[0] - _avatar_size * canvas_scal;
       }
-      if (res_loc[1] < 0) {
-        res_loc[1] = 0;
-      } else if (res_loc[1] > canvas_size[1] - 40) {
-        res_loc[1] = canvas_size[1] - 40;
-      }
-      return res_loc;
-    }
-
-    //计算偏移量，用于双指缩放的情况，避免出界，传入双指当前坐标，通过双指间中点初始落点计算移动量
-    //TODO 出界计算要考虑已画内容大小
-    function countLocationByMulti(touches) {
-      let res_loc = [0, 0];
-      let X = (touches[0].x + touches[1].x) / 2;
-      let Y = (touches[0].y + touches[1].y) / 2;
-
-      res_loc[0] = X - touchStartXY[0] + touchSetXY[0];
-      res_loc[1] = Y - touchStartXY[1] + touchSetXY[1];
-      drawBall(res_loc[0], res_loc[1], 5, "#1ccd19");
-      if (res_loc[0] < 0) {
-        res_loc[0] = 0;
-      } else if (res_loc[0] > canvas_size[0] - 40) {
-        res_loc[0] = canvas_size[0] - 40;
-      }
-      if (res_loc[1] < 0) {
-        res_loc[1] = 0;
-      } else if (res_loc[1] > canvas_size[1] - 40) {
-        res_loc[1] = canvas_size[1] - 40;
+      if (
+        res_loc[1] <
+        (-1 * classroom_size[1] +
+          _avatar_size +
+          _avatar_padding +
+          _blackboard_height) *
+          canvas_scal
+      ) {
+        res_loc[1] =
+          (-1 * classroom_size[1] +
+            _avatar_size +
+            _avatar_padding +
+            _blackboard_height) *
+          canvas_scal;
+      } else if (res_loc[1] > canvas_size[1] - _avatar_size * canvas_scal) {
+        res_loc[1] = canvas_size[1] - _avatar_size * canvas_scal;
       }
       return res_loc;
     }
@@ -298,7 +346,7 @@ export default {
       let b = touches[0].y - touches[1].y;
       change_Distance = Math.sqrt(a * a + b * b) / touch_init_Distance;
       //AddNotice("双指间距离变化量「比例」：" + change_Distance);
-      canvas_scal = change_Distance;
+      canvas_scal = canvas_init_scal * change_Distance;
       //AddNotice("缩放比" + change_Distance);
     }
 
@@ -317,6 +365,7 @@ export default {
         let b = e.touches[0].y - e.touches[1].y;
         touch_init_Distance = Math.sqrt(a * a + b * b);
         AddNotice("双指间距离初始量：" + touch_init_Distance);
+        canvas_init_scal = canvas_scal; //设置缩放比初始值
         touchStartXY = [
           (e.touches[0].x + e.touches[1].x) / 2,
           (e.touches[0].y + e.touches[1].y) / 2,
@@ -339,22 +388,19 @@ export default {
         let location = countLocation(e.touches[0].x, e.touches[0].y);
         drawBall(location[0], location[1], 2, "#b47fd8");
         ctx.save();
-        //ctx.scale(canvas_scal, canvas_scal);
         ctx.translate(location[0], location[1]);
+        ctx.scale(canvas_scal, canvas_scal);
         DrawStuList(StuList);
         ctx.restore();
         drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
       } else if (touchMode == 2) {
         console.log("双指触摸", e.touches);
         if (e.touches.length == 2) {
-          let location = countLocationByMulti(e.touches);
-          multiTouchLastLoc = location;
           //双指触控
           countDistance(e.touches);
           ctx.save();
-          //ctx.scale(canvas_scal, canvas_scal);
-          ctx.translate(location[0], location[1]);
-          DrawStuList(StuList);
+          ctx.scale(canvas_scal, canvas_scal);
+          DrawAvatarSize();
           ctx.restore();
         }
       }
@@ -380,19 +426,17 @@ export default {
         AddNotice("双指触摸 changeTouches.length:" + e.changedTouches.length);
         if (touchesNum == 0) {
           console.log("双指触摸结束", e);
+          let ctx = C_ctx;
+          ctx.save();
+          ctx.translate(touchSetXY[0], touchSetXY[1]);
+          ctx.scale(canvas_scal, canvas_scal);
+          DrawStuList(StuList);
+          ctx.restore();
           touchMode = 0;
           AddNotice("双指触摸结束");
-          for (let t in e.changedTouches) {
-            drawBall(
-              e.changedTouches[t].x,
-              e.changedTouches[t].y,
-              15,
-              "#b47fd8"
-            );
-          }
         } else if (touchesNum == 1) {
           AddNotice("仅离开了一只手指，此时设置新起始点位置");
-          touchSetXY = multiTouchLastLoc;
+          //touchSetXY = multiTouchLastLoc;
         }
       }
     }
