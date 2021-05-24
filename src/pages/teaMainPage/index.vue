@@ -159,7 +159,6 @@ export default {
     const _classroom_border = 2; //定义 教室外轮廓宽度
     //逻辑内数据
     let StuList = []; //学生列表
-
     //TODO 扩充学生列表，测试用
     function addMockStu() {
       var Mock = require("mockjs");
@@ -171,10 +170,11 @@ export default {
             let stu = {
               stu_name: mock_name,
               avatar: null,
+              avatar_ready: false,
               avater_url: Mock.Random.image(
                 "120x120",
                 Mock.Random.color(),
-                "#000",
+                "#000"
               ),
               pos: [i, j],
             };
@@ -238,7 +238,6 @@ export default {
         ctx.restore();
       }
     }
-
     //加载头像
     function loadImg() {
       //TODO 目前很多设备还不支持离屏canvas 等以后再开放这个接口
@@ -250,7 +249,7 @@ export default {
       // });
       let needToLoad = [];
       for (let s in StuList) {
-        if (StuList[s].avater == null) {
+        if (StuList[s].avatar_ready == false) {
           let load = { num: s, avater_url: StuList[s].avater_url };
           needToLoad.push(load);
         }
@@ -269,6 +268,8 @@ export default {
             img.onload = () => {
               console.log("图片加载成功");
               success_num += 1;
+              StuList[needToLoad[s].num].avatar_ready = true;
+              DrawStuNotClean(StuList[needToLoad[s].num]);
               //AddNotice("图片加载成功");
               //console.log("加载进度：" + success_num + "/" + img_num);
               AddNotice(
@@ -336,7 +337,33 @@ export default {
             _avatar_padding / 2
         );
       } else {
-        loadImg();
+        //先加载一部分
+        if (stu.avatar_ready) {
+          try {
+            ctx.drawImage(
+              stu.avater,
+              (_avatar_size + _avatar_padding) * stu.pos[0],
+              (_avatar_size + _avatar_padding + _name_height) * stu.pos[1],
+              _avatar_size,
+              _avatar_size
+            );
+          } catch (error) {
+            console.log("加载出错，image文件错误");
+          }
+        } else {
+          loadImg();
+        }
+        ctx.fillStyle = "#2b2b2b";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(
+          stu.stu_name,
+          (_avatar_size + _avatar_padding) * stu.pos[0] + _avatar_size / 2,
+          (_avatar_size + _avatar_padding + _name_height) * stu.pos[1] +
+            _avatar_size +
+            _avatar_padding / 2
+        );
       }
     }
     //绘制全部学生+教室
@@ -354,6 +381,15 @@ export default {
       for (let i in stuList) {
         DrawStu(ctx, stuList[i]);
       }
+    }
+    //绘制单个学生[不带教室，不清空布局，自带缩放加偏移]
+    function DrawStuNotClean(stu) {
+      let ctx = C_ctx;
+      ctx.save();
+      ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
+      ctx.scale(canvas_scal, canvas_scal);
+      DrawStu(ctx, stu);
+      ctx.restore();
     }
     //绘制教室边框+黑板
     function DrawClassroom() {
