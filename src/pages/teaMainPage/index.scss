@@ -1,6 +1,7 @@
 @import "taro-ui-vue3/dist/style/components/avatar.scss";
 @import "taro-ui-vue3/dist/style/components/button.scss";
 @import "taro-ui-vue3/dist/style/components/noticebar.scss";
+@import "taro-ui-vue3/dist/style/components/activity-indicator.scss";
 .color-test{
 color: #1aad19;
 }
@@ -15,4 +16,7 @@ color: #b47fd8;
 }
 .color-test{
 color: #2b2b2b;
+}
+.color-test{
+color: #f37f7f;
 }

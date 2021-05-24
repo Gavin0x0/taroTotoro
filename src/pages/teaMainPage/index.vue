@@ -37,6 +37,12 @@
       <text class="ws-text">人</text>
     </view>
   </view>
+  <view class="stu-num-container" v-if="imgLoading">
+    <at-activity-indicator
+      :isOpened="imgLoading"
+      content="新加入的用户加载中..."
+    ></at-activity-indicator>
+  </view>
   <canvas
     type="2d"
     id="classroomCanvas"
@@ -70,12 +76,18 @@
 import { ref, onBeforeUpdate, onMounted } from "vue";
 import "./index.scss";
 import Taro from "@tarojs/taro";
-import { AtAvatar, AtButton, AtNoticebar } from "taro-ui-vue3";
+import {
+  AtAvatar,
+  AtButton,
+  AtNoticebar,
+  AtActivityIndicator,
+} from "taro-ui-vue3";
 export default {
   components: {
     AtButton,
     AtAvatar,
     AtNoticebar,
+    AtActivityIndicator,
   },
   onReady() {
     console.log("on ready");
@@ -98,12 +110,13 @@ export default {
     onMounted(() => {
       addMockStu();
       console.log(StuList);
+      loadImg();
     });
     onBeforeUpdate(() => {
       if (!ifGotCanvas) {
         canvasUtils();
       }
-      loadImg();
+      //loadImg();
       console.log("Component is onBeforeUpdate！！！！！！！!");
     });
     //ws的四种状态对应样式
@@ -123,6 +136,7 @@ export default {
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
     const ifShowSingle = ref(true); //是否显示单行
     const selectedStu = ref(null); //被选中的学生
+    const imgLoading = ref(false); //是否正在加载图片
     //Canvas相关变量
     let touchStartXY = [0, 0]; //触摸起始点
     let touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
@@ -149,22 +163,19 @@ export default {
     //TODO 扩充学生列表，测试用
     function addMockStu() {
       var Mock = require("mockjs");
-      let size = 3;
+      let size = 4;
       for (let i = 0; i <= size; i++) {
         for (let j = 0; j <= size; j++) {
-          if (i % 2 == 0 && j % 2 == 0) {
+          if (Mock.Random.boolean(4, 1, true)) {
+            let mock_name = Mock.Random.cname();
             let stu = {
-              stu_name: Mock.Random.cname(),
+              stu_name: mock_name,
               avatar: null,
-              avater_url: Mock.Random.image("120x120", "#6190e8", "Hello"),
-              pos: [i, j],
-            };
-            StuList.push(stu);
-          } else if (j % 2 == 1 && i % 2 == 1) {
-            let stu = {
-              stu_name: Mock.Random.cname(),
-              avatar: null,
-              avater_url: Mock.Random.image("120x120", "#6190e8", "Hello"),
+              avater_url: Mock.Random.image(
+                "120x120",
+                Mock.Random.color(),
+                "#000",
+              ),
               pos: [i, j],
             };
             StuList.push(stu);
@@ -237,36 +248,69 @@ export default {
       //   width: 150,
       //   height: 150,
       // });
-      if (ifGotCanvas) {
-        let canvas = C_canvas;
-        let img_num = StuList.length;
-        let success_num = 0;
-        for (let s in StuList) {
-          const img = canvas.createImage();
-          // 等待图片加载
-          img.onload = () => {
-            console.log("图片加载成功");
-            success_num += 1;
-            //AddNotice("图片加载成功");
-            console.log("加载进度：" + success_num + "/" + img_num);
-            if (success_num == img_num) {
-              console.log("全部加载完毕");
-              ifGotImg = true;
-            }
-          };
-          img.onerror = (e) => {
-            console.log("图片加载失败");
-            AddNotice("图片加载失败");
-          };
-          //img.src = require("../../assets/avatar.png"); // 要加载的图片 url
-          img.src = StuList[s].avater_url; // 要加载的图片 url
-          //TODO 改为对应用户的头像
-          StuList[s].avater = img;
+      let needToLoad = [];
+      for (let s in StuList) {
+        if (StuList[s].avater == null) {
+          let load = { num: s, avater_url: StuList[s].avater_url };
+          needToLoad.push(load);
+        }
+      }
+      if (!imgLoading._rawValue && needToLoad.length != 0) {
+        imgLoading.value = true;
+        if (ifGotCanvas) {
+          let canvas = C_canvas;
+          let img_num = needToLoad.length;
+          let success_num = 0;
+          let fail_num = 0;
+          AddNotice("图片开始加载：" + img_num);
+          for (let s in needToLoad) {
+            const img = canvas.createImage();
+            // 等待图片加载
+            img.onload = () => {
+              console.log("图片加载成功");
+              success_num += 1;
+              //AddNotice("图片加载成功");
+              //console.log("加载进度：" + success_num + "/" + img_num);
+              AddNotice(
+                "加载进度：" + (success_num + fail_num) + "/" + img_num
+              );
+              if (success_num + fail_num == img_num) {
+                if (success_num == img_num) {
+                  console.log("全部加载完毕");
+                  ifGotImg = true;
+                }
+                imgLoading.value = false;
+              }
+            };
+            img.onerror = (e) => {
+              console.log("图片加载失败");
+              fail_num += 1;
+              AddNotice(
+                "加载进度：" + (success_num + fail_num) + "/" + img_num
+              );
+              AddNotice("图片加载失败");
+              if (success_num + fail_num == img_num) {
+                console.log("全部加载结束");
+                imgLoading.value = false;
+              }
+            };
+            //img.src = require("../../assets/avatar.png"); // 要加载的图片 url
+            img.src = needToLoad[s].avater_url; // 要加载的图片 url
+            //TODO 改为对应用户的头像
+            StuList[needToLoad[s].num].avater = img;
+          }
+        } else {
+          console.log("还没有canvas实例，暂不加载");
+          AddNotice("还没有canvas实例，暂不加载");
+          imgLoading.value = false;
+          ifGotImg = false;
         }
       } else {
-        console.log("还没有canvas实例，暂不加载");
-        AddNotice("还没有canvas实例，暂不加载");
-        ifGotImg = false;
+        if (needToLoad.length == 0) {
+          console.log("已加载完，无需加载");
+        } else {
+          console.log("正在加载头像,避免重复加载");
+        }
       }
     }
 
@@ -651,6 +695,7 @@ export default {
       TouchMove,
       TouchEnd,
       selectedStu,
+      imgLoading,
     };
   },
 };
