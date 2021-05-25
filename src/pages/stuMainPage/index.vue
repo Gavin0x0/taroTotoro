@@ -27,6 +27,17 @@
       "怎么做?"
     }}</at-button>
   </view>
+  <view class="notice-container easy-animation">
+    <at-noticebar
+      showMore
+      :single="ifShowSingle"
+      :moreText="ifShowSingle ? '查看更多' : '点击收起'"
+      :onGotoMore="onclickShowMore"
+      style="white-space: pre-wrap"
+      class="easy-animation"
+      >{{ notice }}</at-noticebar
+    >
+  </view>
   <at-flex>
     <at-flex-item :size="4"
       ><other-stu
@@ -125,6 +136,7 @@ import {
   AtFlexItem,
   AtButton,
   AtCurtain,
+  AtNoticebar
 } from "taro-ui-vue3";
 import QRCode from "../../utils/weapp-qrcode.js";
 import OtherStu from "./OtherStu";
@@ -136,6 +148,7 @@ export default {
     AtAvatar,
     AtFlex,
     OtherStu,
+    AtNoticebar
   },
   mounted() {
     let ss_data = { id: "123456", name: "同学" };
@@ -217,9 +230,15 @@ export default {
     const QRpath = ref(""); //二维码路径
     const ifAutoOpen = ref(false); //是否是自动放大的
     const ifShowHelp = ref(false); //是否是自动放大的
+    const ifShowSingle = ref(true); //是否显示单行
+    const notice = ref("通知栏消息：欢迎进入！"); //系统通知
     function setData(d){
       s_id.value = d.id;
       s_name.value = d.name
+    }
+    //点击事件 「查看更多」
+    function onclickShowMore() {
+      ifShowSingle.value = !ifShowSingle._rawValue;
     }
     //生成二维码
     function geneQR(content) {
@@ -251,13 +270,21 @@ export default {
       ifOpenQR.value = x;
       ifAutoOpen.value = x;
     }
+    //更新通知
+    function AddNotice(new_notice) {
+      let nowTime = new Date().toString().split(" ")[4];
+      //console.log(nowTime);
+      notice.value = nowTime + "-" + new_notice + "\n" + notice._rawValue;
+    }
     //连接Websocket
+    //TODO 销毁时断开长连接
     function GetWebSocket() {
       ifReConnect.value = true;
       Taro.connectSocket({
         url: "wss://eclass.idealbroker.cn/ws/1/" + s_id._rawValue,
         success: function () {
           console.log("connect success");
+          AddNotice("ws连接成功")
         },
         fail: function () {
           ifReConnect.value = false;
@@ -266,12 +293,22 @@ export default {
       }).then((task) => {
         task.onOpen(function () {
           console.log("onOpen");
+          AddNotice("ws打开了")
           ifReConnect.value = false;
           wsState.value = 1;
           //task.send({ data: "xxx" });
         });
         task.onMessage(function (msg) {
           console.log("onMessage: ", msg);
+          AddNotice("收到服务消息："+msg.data)
+          let res = JSON.parse(mag)
+          switch (res.action) {
+            case "update_naerby_diagram":
+              HandleAdd(res.pos)
+              break;
+            default:
+              break;
+          }
           //task.close();
         });
         task.onError(function () {
@@ -287,8 +324,13 @@ export default {
         task.onClose(function (e) {
           wsState.value = 3;
           console.log("onClose: ", e);
+          AddNotice("长连接关闭")
         });
       });
+    }
+    function HandleAdd(msg){
+      console.log("添加同学",msg)
+      
     }
     //断线重连
     function reConnect() {
@@ -333,7 +375,10 @@ export default {
       s_name,
       showHelp,
       closeHelp,
-      setData
+      setData,
+      onclickShowMore,
+      ifShowSingle,
+      notice
     };
   },
 };
@@ -381,5 +426,11 @@ export default {
   margin-top: 1.2rem;
   line-height: 2.4rem;
   font-size: 0.9rem;
+}
+.notice-container {
+  margin: 0 5vw 0 5vw;
+}
+.easy-animation {
+  transition: 1s ease;
 }
 </style>

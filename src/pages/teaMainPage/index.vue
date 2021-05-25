@@ -184,6 +184,7 @@ export default {
           }
         }
       }
+      console.log(StuList)
       classroom_size = [
         (size + 1) * (_avatar_size + _avatar_padding),
         (size + 1) * (_avatar_size + _avatar_padding + _name_height) +
@@ -703,7 +704,7 @@ export default {
     function GetWebSocket() {
       ifReConnect.value = true;
       Taro.connectSocket({
-        url: "ws://123.207.136.134:9010/ajaxchattest",
+        url: "wss://eclass.idealbroker.cn/ws_t/1/987654321",
         success: function () {
           console.log("connect success");
           AddNotice("系统消息：服务器连接成功");
