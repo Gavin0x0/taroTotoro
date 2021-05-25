@@ -141,7 +141,9 @@ export default {
     let touchStartXY = [0, 0]; //触摸起始点
     let touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
     let canvas_size = null; //canvas尺寸
+    let exampleImg = null; //示例头像
     let ifGotImg = false; //是否已经加载好图片资源
+    let ifGotExampleImg = false; //是否已经加载好示例图片
     let C_canvas = null; //canvas实例
     let C_ctx = null; //canvas绘制器
     let ifGotCanvas = false; //是否已获取到canvas
@@ -269,7 +271,7 @@ export default {
               console.log("图片加载成功");
               success_num += 1;
               StuList[needToLoad[s].num].avatar_ready = true;
-              DrawStuNotClean(StuList[needToLoad[s].num]);
+              //DrawStuNotClean(StuList[needToLoad[s].num]);
               //AddNotice("图片加载成功");
               //console.log("加载进度：" + success_num + "/" + img_num);
               AddNotice(
@@ -277,6 +279,7 @@ export default {
               );
               if (success_num + fail_num == img_num) {
                 if (success_num == img_num) {
+                  AddNotice("全部加载完毕");
                   console.log("全部加载完毕");
                   ifGotImg = true;
                 }
@@ -314,9 +317,26 @@ export default {
         }
       }
     }
+    function loadExampleImg() {
+      let canvas = C_canvas;
+      const img = canvas.createImage();
+      // 等待图片加载
+      img.onload = () => {
+        console.log("示例图片加载成功");
+        ifGotExampleImg = true;
+      };
+      img.onerror = (e) => {
+        console.log("示例图片加载失败");
+      };
+      //img.src = require("../../assets/avatar.png"); // 要加载的图片 url
+      img.src = require("../../assets/avatar.png"); // 要加载的图片 url
+      //TODO 改为对应用户的头像
+      exampleImg = img;
+    }
 
     //绘制单个学生头像+姓名
     function DrawStu(ctx, stu) {
+      //ifGotImg:true【所有头像已经成功加载】
       if (ifGotImg) {
         ctx.drawImage(
           stu.avater,
@@ -338,6 +358,7 @@ export default {
         );
       } else {
         //先加载一部分
+        //stu.avatar_ready:true【该学生头像已经成功加载】
         if (stu.avatar_ready) {
           try {
             ctx.drawImage(
@@ -351,6 +372,13 @@ export default {
             console.log("加载出错，image文件错误");
           }
         } else {
+          // ctx.fillStyle = "#acacac";
+          // ctx.fillRect(
+          //   (_avatar_size + _avatar_padding) * stu.pos[0],
+          //   (_avatar_size + _avatar_padding + _name_height) * stu.pos[1],
+          //   _avatar_size,
+          //   _avatar_size
+          // );
           loadImg();
         }
         ctx.fillStyle = "#2b2b2b";
@@ -429,25 +457,30 @@ export default {
     function DrawAvatarSize() {
       let ctx = C_ctx;
       cleanAll(true);
-      if (ifGotImg) {
+      if (ifGotExampleImg) {
         ctx.drawImage(
-          StuList[0].avater,
+          exampleImg,
           canvas_size[0] / canvas_scal / 2 - _avatar_size / 2,
           canvas_size[1] / canvas_scal / 2 - _avatar_size / 2,
           _avatar_size,
           _avatar_size
         );
+        ctx.fillStyle = "#2b2b2b";
         ctx.font = "48px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(
-          "调整大小:" + (canvas_scal * 100).toFixed(2) + "%",
-          canvas_size[0] / canvas_scal / 2 -
-            _avatar_size / 2 +
-            _avatar_size / 2,
-          canvas_size[1] / canvas_scal / 2 - _avatar_size / 2 - _avatar_size / 2
+          "当前比例:" + (canvas_scal * 100).toFixed(2) + "%",
+          canvas_size[0] / canvas_scal / 2,
+          canvas_size[1] / canvas_scal / 2 - _avatar_size
+        );
+        ctx.fillStyle = "#1aad19";
+        ctx.fillText(
+          "推荐比例:" + ((canvas_size[0] / classroom_size[0])*100).toFixed(2) + "%",
+          canvas_size[0] / canvas_scal / 2,
+          canvas_size[1] / canvas_scal / 2 + _avatar_size * 2
         );
       } else {
-        loadImg();
+        loadExampleImg();
       }
     }
     //debug小球
@@ -662,6 +695,7 @@ export default {
       //console.log(nowTime);
       notice.value = nowTime + "-" + new_notice + "\n" + notice._rawValue;
     }
+    //点击事件 「查看更多」
     function onclickShowMore() {
       ifShowSingle.value = !ifShowSingle._rawValue;
     }
