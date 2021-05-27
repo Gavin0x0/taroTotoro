@@ -136,7 +136,7 @@ import {
   AtFlexItem,
   AtButton,
   AtCurtain,
-  AtNoticebar
+  AtNoticebar,
 } from "taro-ui-vue3";
 import QRCode from "../../utils/weapp-qrcode.js";
 import OtherStu from "./OtherStu";
@@ -148,7 +148,7 @@ export default {
     AtAvatar,
     AtFlex,
     OtherStu,
-    AtNoticebar
+    AtNoticebar,
   },
   mounted() {
     let ss_data = { id: "123456", name: "同学" };
@@ -158,7 +158,7 @@ export default {
     } catch (e) {
       console.log("getStorageSync fail", e);
     }
-    this.setData(ss_data)
+    this.setData(ss_data);
     this.geneQR("dd$" + JSON.stringify(ss_data));
     this.GetWebSocket();
     let r = 1;
@@ -212,14 +212,14 @@ export default {
       { color: "#FF4949", text: "连接断开" },
     ];
     const stuList = ref([
-      { direction: "左前",p_string:"front_left", s_name: "左前" },
-      { direction: "前面",p_string:"front", s_name: "前" },
-      { direction: "右前",p_string:"front_right", s_name: "右前" },
-      { direction: "左边",p_string:"left", s_name: "左" },
-      { direction: "右边",p_string:"right", s_name: "右" },
-      { direction: "左后",p_string:"rear_left", s_name: "左后" },
-      { direction: "后面",p_string:"rear", s_name: "后" },
-      { direction: "右后",p_string:"rear_right", s_name: "右后" },
+      { direction: "左前", p_string: "front_left", s_name: "左前" },
+      { direction: "前面", p_string: "front", s_name: "前" },
+      { direction: "右前", p_string: "front_right", s_name: "右前" },
+      { direction: "左边", p_string: "left", s_name: "左" },
+      { direction: "右边", p_string: "right", s_name: "右" },
+      { direction: "左后", p_string: "rear_left", s_name: "左后" },
+      { direction: "后面", p_string: "rear", s_name: "后" },
+      { direction: "右后", p_string: "rear_right", s_name: "右后" },
     ]);
     const wsState = ref(0); //ws状态
     const ifReConnect = ref(false); //是否正在重连
@@ -232,9 +232,10 @@ export default {
     const ifShowHelp = ref(false); //是否是自动放大的
     const ifShowSingle = ref(true); //是否显示单行
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
-    function setData(d){
+    let webSocketTask = Taro.getStorageSync("g_websocket");
+    function setData(d) {
       s_id.value = d.id;
-      s_name.value = d.name
+      s_name.value = d.name;
     }
     //点击事件 「查看更多」
     function onclickShowMore() {
@@ -280,57 +281,67 @@ export default {
     //TODO 销毁时断开长连接
     function GetWebSocket() {
       ifReConnect.value = true;
-      Taro.connectSocket({
-        url: "wss://eclass.idealbroker.cn/ws/1/" + s_id._rawValue,
-        success: function () {
-          console.log("connect success");
-          AddNotice("ws连接成功")
-        },
-        fail: function () {
-          ifReConnect.value = false;
-          console.log("connect fail");
-        },
-      }).then((task) => {
-        task.onOpen(function () {
-          console.log("onOpen");
-          AddNotice("ws打开了")
-          ifReConnect.value = false;
-          wsState.value = 1;
-          //task.send({ data: "xxx" });
-        });
-        task.onMessage(function (msg) {
-          console.log("onMessage: ", msg);
-          AddNotice("收到服务消息："+msg.data)
-          let res = JSON.parse(mag)
-          switch (res.action) {
-            case "update_naerby_diagram":
-              HandleAdd(res.pos)
-              break;
-            default:
-              break;
-          }
-          //task.close();
-        });
-        task.onError(function () {
-          wsState.value = 2;
-          ifReConnect.value = false;
-          wx.showToast({
-            title: "连接失败",
-            icon: "error",
-            duration: 1000,
+      //如果为空则连接
+      if (!webSocketTask) {
+        Taro.connectSocket({
+          url: "wss://eclass.idealbroker.cn/ws/1/" + s_id._rawValue,
+          success: function () {
+            console.log("connect success");
+            AddNotice("ws连接成功");
+          },
+          fail: function () {
+            ifReConnect.value = false;
+            console.log("connect fail");
+          },
+        }).then((task) => {
+          Taro.setStorageSync("g_websocket", task);
+          task.onOpen(function () {
+            console.log("onOpen");
+            AddNotice("ws打开了");
+            ifReConnect.value = false;
+            wsState.value = 1;
+            //task.send({ data: "xxx" });
           });
-          console.log("onError");
+          task.onMessage(function (msg) {
+            console.log("onMessage: ", msg);
+            AddNotice("收到服务消息：" + msg.data);
+            let res = JSON.parse(msg);
+            switch (res.action) {
+              case "update_naerby_diagram":
+                HandleAdd(res.pos);
+                break;
+              default:
+                break;
+            }
+            //task.close();
+          });
+          task.onError(function () {
+            wsState.value = 2;
+            ifReConnect.value = false;
+            wx.showToast({
+              title: "连接失败",
+              icon: "error",
+              duration: 1000,
+            });
+            console.log("onError");
+          });
+          task.onClose(function (e) {
+            wsState.value = 3;
+            console.log("onClose: ", e);
+            AddNotice("长连接关闭");
+            Taro.setStorageSync("g_websocket", "");
+          });
         });
-        task.onClose(function (e) {
-          wsState.value = 3;
-          console.log("onClose: ", e);
-          AddNotice("长连接关闭")
-        });
-      });
+      } else {
+        console.log("websocket已存在");
+        AddNotice("websocket已存在");
+        Taro.setStorageSync("g_websocket", "");
+        console.log(webSocketTask)
+        AddNotice("关闭已存在的websocket");
+      }
     }
-    function HandleAdd(msg){
-      console.log("添加同学",msg)
-      
+    function HandleAdd(msg) {
+      console.log("添加同学", msg);
     }
     //断线重连
     function reConnect() {
@@ -378,7 +389,7 @@ export default {
       setData,
       onclickShowMore,
       ifShowSingle,
-      notice
+      notice,
     };
   },
 };

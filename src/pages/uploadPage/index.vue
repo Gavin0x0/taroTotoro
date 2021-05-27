@@ -107,11 +107,54 @@ export default {
               success: function (res) {
                 console.log(res.data);
                 loginState.value = res.data.is_new_user;
+                if (!res.data.is_new_user) {
+                  formData.value = { name: "非新用户1", id: "654321" };
+                } else {
+                  formData.value = { name: "新测试用户1", id: "123456" };
+                }
               },
             });
           } else {
             console.log("用户凭证获取失败！" + res.errMsg);
           }
+        },
+      });
+      wx.checkSession({
+        success() {
+          console.log("未过期，并且在本生命周期一直有效");
+          //session_key 未过期，并且在本生命周期一直有效
+        },
+        fail() {
+          console.log("已经失效，需要重新执行登录流程");
+          // session_key 已经失效，需要重新执行登录流程
+          wx.login({
+            success(res) {
+              if (res.code) {
+                //发起网络请求
+                wx.request({
+                  url: "https://eclass.idealbroker.cn/login",
+                  method: "POST",
+                  header: {
+                    "content-type": "application/x-www-form-urlencoded",
+                  },
+                  data: {
+                    code: res.code,
+                  },
+                  success: function (res) {
+                    console.log(res.data);
+                    loginState.value = res.data.is_new_user;
+                    if (!res.data.is_new_user) {
+                      formData.value = { name: "非新用户1", id: "654321" };
+                    } else {
+                      formData.value = { name: "新测试用户1", id: "123456" };
+                    }
+                  },
+                });
+              } else {
+                console.log("登录失败！" + res.errMsg);
+              }
+            },
+          });
         },
       });
     }
@@ -170,7 +213,7 @@ export default {
               Taro.setStorageSync("s_name", formData.value.name);
               Taro.setStorageSync("s_id", formData.value.id);
             } catch (e) {
-              console.log("setStorageSync fail",e)
+              console.log("setStorageSync fail", e);
             }
             Taro.reLaunch({
               url: "/pages/stuMainPage/index",

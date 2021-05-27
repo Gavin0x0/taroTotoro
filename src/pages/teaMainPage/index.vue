@@ -108,7 +108,7 @@ export default {
         当前折中的方案是设一个flag判断是否已获取到canvas,在onBeforeUpdate()中获取canvas
      */
     onMounted(() => {
-      addMockStu();
+      //addMockStu();
       console.log(StuList);
       loadImg();
     });
@@ -161,37 +161,106 @@ export default {
     const _classroom_border = 2; //定义 教室外轮廓宽度
     //逻辑内数据
     let StuList = []; //学生列表
-    //TODO 扩充学生列表，测试用
+    //TODO Mock数据，扩充学生列表，测试用
     function addMockStu() {
       var Mock = require("mockjs");
-      let size = 4;
+      let size = 1;
       for (let i = 0; i <= size; i++) {
         for (let j = 0; j <= size; j++) {
           if (Mock.Random.boolean(4, 1, true)) {
             let mock_name = Mock.Random.cname();
             let stu = {
+              stu_id: "1" + i + "1" + j,
               stu_name: mock_name,
               avatar: null,
               avatar_ready: false,
-              avater_url: Mock.Random.image(
-                "120x120",
-                Mock.Random.color(),
-                "#000"
-              ),
+              avater_url: require("./assets/avatar.png"),
               pos: [i, j],
             };
             StuList.push(stu);
           }
         }
       }
-      console.log(StuList)
+      console.log(StuList);
       classroom_size = [
         (size + 1) * (_avatar_size + _avatar_padding),
         (size + 1) * (_avatar_size + _avatar_padding + _name_height) +
           _blackboard_height,
       ]; //列人数*50，行数*50+20
     }
+    function ifExist(id) {
+      let exist = false;
+      for (s in StuList._rawValue) {
+        if (StuList._rawValue[s].stu_id == id) {
+          exist = true;
+        }
+      }
+      return exist;
+    }
 
+    //更新教室学生信息
+    function updateClassroom(classroom) {
+      console.log("classroom:", classroom);
+      let max_group_num = 0;
+      let max_group = null;
+      for (let group in classroom) {
+        let obj_length = Object.keys(group).length;
+        if (obj_length > max_group_num) {
+          max_group_num = obj_length;
+          max_group = classroom[group];
+        }
+      }
+      console.log("max_group:", max_group);
+      let max_row_num = 0; //最大行数
+      let max_coloum_num = 0; //最大列数
+      for (let stu in max_group) {
+        if (max_group[stu][0] > max_row_num) {
+          max_row_num = max_group[stu][0];
+        }
+        if (max_group[stu][1] > max_coloum_num) {
+          max_coloum_num = max_group[stu][1];
+        }
+        if (ifExist(stu)) {
+          console.log(stu, "exist");
+        } else {
+          console.log(stu, "not exist");
+          addStu(stu, max_group[stu]);
+        }
+      }
+      classroom_size = [
+        (max_coloum_num + 1) * (_avatar_size + _avatar_padding),
+        (max_row_num + 1) * (_avatar_size + _avatar_padding + _name_height) +
+          _blackboard_height,
+      ]; //列人数*50，行数*50+20
+    }
+
+    function addStu(id, pos) {
+      console.log("ADD:", id);
+      let stu = {
+        stu_id: "",
+        stu_name: "",
+        avatar: null,
+        avatar_ready: false,
+        avater_url: require("./assets/avatar.png"),
+        pos: pos,
+      };
+      Taro.request({
+        url: "https://eclass.idealbroker.cn/detail?id=" + id,
+        method: "GET",
+        header: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        success: function (res) {
+          let stu_data = res.data;
+          console.log("stu_data:", stu_data);
+          stu.stu_id = id;
+          stu.stu_name = stu_data.name;
+          stu.avater_url = stu_data.avatar;
+          StuList.push(stu);
+          console.log(StuList);
+        },
+      });
+    }
     //工具类，获取canvas
     function canvasUtils() {
       wx.createSelectorQuery()
@@ -318,6 +387,7 @@ export default {
         }
       }
     }
+    //加载缺省头像
     function loadExampleImg() {
       let canvas = C_canvas;
       const img = canvas.createImage();
@@ -334,7 +404,6 @@ export default {
       //TODO 改为对应用户的头像
       exampleImg = img;
     }
-
     //绘制单个学生头像+姓名
     function DrawStu(ctx, stu) {
       //ifGotImg:true【所有头像已经成功加载】
@@ -476,7 +545,9 @@ export default {
         );
         ctx.fillStyle = "#1aad19";
         ctx.fillText(
-          "推荐比例:" + ((canvas_size[0] / classroom_size[0])*100).toFixed(2) + "%",
+          "推荐比例:" +
+            ((canvas_size[0] / classroom_size[0]) * 100).toFixed(2) +
+            "%",
           canvas_size[0] / canvas_scal / 2,
           canvas_size[1] / canvas_scal / 2 + _avatar_size * 2
         );
@@ -703,8 +774,9 @@ export default {
     //连接Websocket
     function GetWebSocket() {
       ifReConnect.value = true;
+      //let id = Taro.getStorageSync("s_id");
       Taro.connectSocket({
-        url: "wss://eclass.idealbroker.cn/ws_t/1/987654321",
+        url: "wss://eclass.idealbroker.cn/ws_t/1/0",
         success: function () {
           console.log("connect success");
           AddNotice("系统消息：服务器连接成功");
@@ -724,7 +796,17 @@ export default {
         task.onMessage(function (msg) {
           console.log("onMessage: ", msg);
           //task.close();
-          AddNotice(nowDate + "服务器消息：" + msg);
+          AddNotice("服务器消息：" + msg);
+          let res = JSON.parse(msg.data);
+          switch (res.action) {
+            case "update_classroom_diagram":
+              updateClassroom(res.data);
+              break;
+            default:
+              console.log("do default:", res);
+              updateClassroom(res);
+              break;
+          }
         });
         task.onError(function () {
           wsState.value = 2;
