@@ -43,7 +43,7 @@
       ><other-stu
         :direction="stuList[0].direction"
         :s_name="stuList[0].s_name"
-        :p_string="stuList[1].p_string"
+        :p_string="stuList[0].p_string"
       ></other-stu
     ></at-flex-item>
     <at-flex-item :size="4"
@@ -212,15 +212,25 @@ export default {
       { color: "#FF4949", text: "连接断开" },
     ];
     const stuList = ref([
-      { direction: "左前", p_string: "front_left", s_name: "左前" },
-      { direction: "前面", p_string: "front", s_name: "前" },
-      { direction: "右前", p_string: "front_right", s_name: "右前" },
-      { direction: "左边", p_string: "left", s_name: "左" },
-      { direction: "右边", p_string: "right", s_name: "右" },
-      { direction: "左后", p_string: "rear_left", s_name: "左后" },
-      { direction: "后面", p_string: "rear", s_name: "后" },
-      { direction: "右后", p_string: "rear_right", s_name: "右后" },
+      { direction: "左前", p_string: "front-left", s_name: "左前" },
+      { direction: "前面", p_string: "front", s_name: "前面" },
+      { direction: "右前", p_string: "front-right", s_name: "右前" },
+      { direction: "左边", p_string: "left", s_name: "左边" },
+      { direction: "右边", p_string: "right", s_name: "右边" },
+      { direction: "左后", p_string: "rear-left", s_name: "左后" },
+      { direction: "后面", p_string: "rear", s_name: "后面" },
+      { direction: "右后", p_string: "rear-right", s_name: "右后" },
     ]);
+    const posList = {
+      "front-left": 0,
+      front: 1,
+      "front-right": 2,
+      left: 3,
+      right: 4,
+      "rear-left": 5,
+      rear: 6,
+      "rear-right": 7,
+    };
     const wsState = ref(0); //ws状态
     const ifReConnect = ref(false); //是否正在重连
     const s_name = ref("同学"); //用户姓名
@@ -281,6 +291,7 @@ export default {
     //TODO 销毁时断开长连接
     function GetWebSocket() {
       ifReConnect.value = true;
+      webSocketTask = Taro.getStorageSync("g_websocket");
       //如果为空则连接
       if (!webSocketTask) {
         Taro.connectSocket({
@@ -304,14 +315,20 @@ export default {
           });
           task.onMessage(function (msg) {
             console.log("onMessage: ", msg);
-            AddNotice("收到服务消息：" + msg.data);
-            let res = JSON.parse(msg);
-            switch (res.action) {
-              case "update_naerby_diagram":
-                HandleAdd(res.pos);
-                break;
-              default:
-                break;
+            AddNotice("收到服务消息：" + msg);
+            try {
+              let res = JSON.parse(msg.data);
+              console.log("res:", res);
+              switch (res.action) {
+                case "update_nearby_diagram":
+                  console.log("更新附加同学信息", res.pos);
+                  HandleAdd(res.pos);
+                  break;
+                default:
+                  break;
+              }
+            } catch (error) {
+              console.log("非JSON", error);
             }
             //task.close();
           });
@@ -336,12 +353,38 @@ export default {
         console.log("websocket已存在");
         AddNotice("websocket已存在");
         Taro.setStorageSync("g_websocket", "");
-        console.log(webSocketTask)
+        console.log(webSocketTask);
+        Taro.closeSocket()
+        wsState.value = 3;
+        ifReConnect.value = false;
+        //webSocketTask.close()
         AddNotice("关闭已存在的websocket");
       }
     }
     function HandleAdd(msg) {
-      console.log("添加同学", msg);
+      for (let p in msg) {
+        GetStuDetail(msg[p]).then((res) => {
+          console.log(p, "方向是：", res.name,"序号：",posList[p]);
+          stuList.value[posList[p]].s_name = res.name
+          console.log(stuList.value)
+        });
+      }
+    }
+    function GetStuDetail(id) {
+      return new Promise((resolve, reject) => {
+        Taro.request({
+          url: "https://eclass.idealbroker.cn/detail?id=" + id,
+          method: "GET",
+          header: {
+            "content-type": "application/x-www-form-urlencoded",
+          },
+          success: function (res) {
+            let stu_data = res.data;
+            console.log("stu_data:", stu_data);
+            resolve(stu_data);
+          },
+        });
+      });
     }
     //断线重连
     function reConnect() {

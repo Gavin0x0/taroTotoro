@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { onUpdated, ref } from "vue";
 import "./index.scss";
 import { AtAvatar, AtActionSheet, AtActionSheetItem } from "taro-ui-vue3";
 import Taro from "@tarojs/taro";
@@ -34,6 +34,24 @@ export default {
     AtActionSheetItem,
   },
   setup(props) {
+    onUpdated(() => {
+      console.log(
+        "props.direction:",
+        props.direction,
+        "props.s_name:",
+        props.s_name,
+        "update!"
+      );
+      //由于不能直接取值做判断「s_name_text.value.toString() != props.s_name.toString()」，故作此法
+      let origin = JSON.stringify(props.direction.toString());
+      let position = JSON.stringify(props.s_name.toString());
+      if (origin != position) {
+        console.log(origin, "不等于", position, "start update!");
+        s_name_text.value = "已设置：" + props.s_name;
+        avatar_text.value = props.s_name.substring(0, 1);
+        bgColorType.value = 1;
+      }
+    });
     //背景颜色 [0:未关联，1:已关联，2:空位]
     const bgColor = [
       "color: #3F536E; background-color: #34343434",
@@ -60,8 +78,8 @@ export default {
             console.log(data);
             console.log("添加同学" + data.name + ":" + data.id);
             let o_id = Taro.getStorageSync("s_id");
-            let position = props.p_string
-            console.log("位于",position)
+            let position = props.p_string;
+            console.log("位于", position);
             Taro.request({
               url: "https://eclass.idealbroker.cn/set",
               method: "POST",
@@ -69,9 +87,9 @@ export default {
                 "content-type": "application/x-www-form-urlencoded",
               },
               data: {
-                origin: o_id,//原点
-                target: data.id,//目标
-                position: position,//
+                origin: o_id, //原点
+                target: data.id, //目标
+                position: position, //
               },
               success: function (res) {
                 console.log(res.data);
@@ -81,7 +99,7 @@ export default {
             avatar_text.value = data.name.substring(0, 1);
             bgColorType.value = 1;
           } catch (error) {
-            console.log("参数非法",error);
+            console.log("参数非法", error);
             wx.showToast({
               title: "非法身份码",
               icon: "error",

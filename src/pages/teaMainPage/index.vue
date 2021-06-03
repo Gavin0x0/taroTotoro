@@ -204,9 +204,11 @@ export default {
       let max_group_num = 0;
       let max_group = null;
       for (let group in classroom) {
-        let obj_length = Object.keys(group).length;
+        let obj_length = Object.keys(classroom[group]).length;
+        console.log("该组人数：",obj_length)
         if (obj_length > max_group_num) {
           max_group_num = obj_length;
+          console.log("最大组人数：",max_group_num)
           max_group = classroom[group];
         }
       }
@@ -228,8 +230,8 @@ export default {
         }
       }
       classroom_size = [
-        (max_coloum_num + 1) * (_avatar_size + _avatar_padding),
-        (max_row_num + 1) * (_avatar_size + _avatar_padding + _name_height) +
+        (max_row_num + 1) * (_avatar_size + _avatar_padding),
+        (max_coloum_num + 1) * (_avatar_size + _avatar_padding + _name_height) +
           _blackboard_height,
       ]; //列人数*50，行数*50+20
     }
@@ -797,15 +799,19 @@ export default {
           console.log("onMessage: ", msg);
           //task.close();
           AddNotice("服务器消息：" + msg);
-          let res = JSON.parse(msg.data);
-          switch (res.action) {
-            case "update_classroom_diagram":
-              updateClassroom(res.data);
-              break;
-            default:
-              console.log("do default:", res);
-              updateClassroom(res);
-              break;
+          try {
+            let res = JSON.parse(msg.data);
+            switch (res.action) {
+              case "update_classroom_diagram":
+                updateClassroom(res.data);
+                break;
+              default:
+                console.log("do default:", res);
+                updateClassroom(res);
+                break;
+            }
+          } catch (error) {
+            console.log("非JSON");
           }
         });
         task.onError(function () {
