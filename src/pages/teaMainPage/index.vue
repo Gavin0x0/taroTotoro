@@ -61,7 +61,7 @@
     </view>
   </view>
   <view class="action-layout-container" v-if="selectedStu">
-    <at-button type="primary" @click="quizSelectedStu">提问</at-button>
+    <at-button type="primary" @click="askSelectedStu">提问</at-button>
     <at-button type="primary">加分</at-button>
     <at-button type="secondary" @click="openDelSheet">请出教室</at-button>
   </view>
@@ -161,7 +161,7 @@ export default {
      */
     onMounted(() => {
       //addMockStu();
-      console.log(StuList);
+      console.log(LinkedStuList);
       loadImg();
     });
     onBeforeUpdate(() => {
@@ -183,8 +183,8 @@ export default {
     const s_name = ref("教师"); //用户姓名
     const s_id = ref("null"); //用户ID
     const total_stu_num = ref(0); //总人数
-    const entry_stu_num = ref(30); //已经加入教室的人数
-    const located_stu_num = ref(28); //已经关联位置的人数
+    const entry_stu_num = ref(0); //已经加入教室的人数
+    const located_stu_num = ref(0); //已经关联位置的人数
     const link_list = ref([]);
     const unlink_list = ref([]);
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
@@ -216,8 +216,10 @@ export default {
     const _name_height = 20; //定义 名字高度
     const _blackboard_height = 40; //定义 黑板占用高度
     const _classroom_border = 2; //定义 教室外轮廓宽度
-    //逻辑内数据
-    let StuList = []; //学生列表
+    //逻辑内已关联的最大群组学生数据,存头像数据，位置信息
+    let LinkedStuList = []; //学生列表
+    //全部的学生数据对象，存学号，姓名，头像url
+    let AllStuList = {};
 
     //TODO Mock数据，扩充学生列表，测试用
     function addMockStu() {
@@ -235,11 +237,11 @@ export default {
               avater_url: require("./assets/avatar.png"),
               pos: [i, j],
             };
-            StuList.push(stu);
+            LinkedStuList.push(stu);
           }
         }
       }
-      console.log(StuList);
+      console.log(LinkedStuList);
       classroom_size = [
         (size + 1) * (_avatar_size + _avatar_padding),
         (size + 1) * (_avatar_size + _avatar_padding + _name_height) +
@@ -279,6 +281,16 @@ export default {
     //请出选中的学生
     function deleteSelectedStu() {
       isDelSheetOpened.value = false
+      Taro.request({
+        url: "https://eclass.idealbroker.cn/exit?id=" + selectedStu.value.stu_id,
+        method: "GET",
+        header: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        success: function (res) {
+          console.log(res)
+        },
+      });
       console.log(
         "请出：",
         selectedStu.value.stu_id,
@@ -293,7 +305,17 @@ export default {
       );
     }
     //提问选中的学生
-    function quizSelectedStu() {
+    function askSelectedStu() {
+      Taro.request({
+        url: "https://eclass.idealbroker.cn/ask?id=" + selectedStu.value.stu_id,
+        method: "GET",
+        header: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        success: function (res) {
+          console.log(res)
+        },
+      });
       console.log(
         "提问：",
         selectedStu.value.stu_id,
@@ -306,8 +328,8 @@ export default {
     //判断是否已存在于StuList,如果存在，返回pos，不存在返回0
     function whereInStuList(id) {
       let exist = false;
-      for (s in StuList._rawValue) {
-        if (StuList._rawValue[s].stu_id == id) {
+      for (s in LinkedStuList._rawValue) {
+        if (LinkedStuList._rawValue[s].stu_id == id) {
           exist = true;
         }
       }
@@ -316,8 +338,8 @@ export default {
     //判断是否已存在于StuList
     function ifExist(id) {
       let exist = false;
-      for (s in StuList._rawValue) {
-        if (StuList._rawValue[s].stu_id == id) {
+      for (s in LinkedStuList._rawValue) {
+        if (LinkedStuList._rawValue[s].stu_id == id) {
           exist = true;
         }
       }
@@ -405,8 +427,8 @@ export default {
           stu.stu_id = id;
           stu.stu_name = stu_data.name;
           stu.avater_url = stu_data.avatar;
-          StuList.push(stu);
-          console.log(StuList);
+          LinkedStuList.push(stu);
+          console.log(LinkedStuList);
         },
       });
     }
@@ -469,9 +491,9 @@ export default {
       //   height: 150,
       // });
       let needToLoad = [];
-      for (let s in StuList) {
-        if (StuList[s].avatar_ready == false) {
-          let load = { num: s, avater_url: StuList[s].avater_url };
+      for (let s in LinkedStuList) {
+        if (LinkedStuList[s].avatar_ready == false) {
+          let load = { num: s, avater_url: LinkedStuList[s].avater_url };
           needToLoad.push(load);
         }
       }
@@ -489,8 +511,8 @@ export default {
             img.onload = () => {
               console.log("图片加载成功");
               success_num += 1;
-              StuList[needToLoad[s].num].avatar_ready = true;
-              //DrawStuNotClean(StuList[needToLoad[s].num]);
+              LinkedStuList[needToLoad[s].num].avatar_ready = true;
+              //DrawStuNotClean(LinkedStuList[needToLoad[s].num]);
               //AddNotice("图片加载成功");
               //console.log("加载进度：" + success_num + "/" + img_num);
               AddNotice(
@@ -520,7 +542,7 @@ export default {
             //img.src = require("../../assets/avatar.png"); // 要加载的图片 url
             img.src = needToLoad[s].avater_url; // 要加载的图片 url
             //TODO 改为对应用户的头像
-            StuList[needToLoad[s].num].avater = img;
+            LinkedStuList[needToLoad[s].num].avater = img;
           }
         } else {
           console.log("还没有canvas实例，暂不加载");
@@ -772,11 +794,11 @@ export default {
       let coloum_num = parseInt(
         t_Y / (_avatar_size + _avatar_padding + _name_height)
       );
-      for (let s in StuList) {
-        if (StuList[s].pos[0] == row_num && StuList[s].pos[1] == coloum_num) {
-          selectStu(StuList[s].stu_id);
-          //selectedStu.value = StuList[s];
-          AddNotice("选中了：" + StuList[s].stu_name);
+      for (let s in LinkedStuList) {
+        if (LinkedStuList[s].pos[0] == row_num && LinkedStuList[s].pos[1] == coloum_num) {
+          selectStu(LinkedStuList[s].stu_id);
+          //selectedStu.value = LinkedStuList[s];
+          AddNotice("选中了：" + LinkedStuList[s].stu_name);
           drawSelector(row_num, coloum_num);
         }
       }
@@ -805,7 +827,7 @@ export default {
         _avatar_size,
         _name_height
       );
-      DrawStuListNotClean(StuList);
+      DrawStuListNotClean(LinkedStuList);
       ctx.restore();
     }
     //开始触摸
@@ -847,7 +869,7 @@ export default {
         ctx.save();
         ctx.translate(location[0], location[1]);
         ctx.scale(canvas_scal, canvas_scal);
-        DrawStuList(StuList);
+        DrawStuList(LinkedStuList);
         ctx.restore();
         //drawBall(e.touches[0].x, e.touches[0].y, 2, "#7fd8c9");
       } else if (touchMode == 2) {
@@ -899,7 +921,7 @@ export default {
           ctx.save();
           ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
           ctx.scale(canvas_scal, canvas_scal);
-          DrawStuList(StuList);
+          DrawStuList(LinkedStuList);
           ctx.restore();
           touchMode = 0;
           AddNotice("双指触摸结束");
@@ -1019,7 +1041,7 @@ export default {
       deleteSelectedStu,
       openDelSheet,
       closeDelSheet,
-      quizSelectedStu,
+      askSelectedStu,
       selectStu,
       link_list,
       unlink_list,

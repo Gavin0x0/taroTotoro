@@ -125,6 +125,15 @@
       >
     </view>
   </at-curtain>
+  <at-curtain :isOpened="ifShowAsked" @close="closeAsk">
+    <view class="asked-container">
+      <image
+        style="width: 80%;"
+        :src="require('../../assets/ask.svg')"
+      />
+      <text style="font-size:2rem;color:#6190E8"> 你被提问到了 </text>
+    </view>
+  </at-curtain>
 </template>
 <script>
 import { ref } from "vue";
@@ -143,9 +152,9 @@ import OtherStu from "./OtherStu";
 export default {
   components: {
     AtFlexItem,
-    AtCurtain,
     AtButton,
     AtAvatar,
+    AtCurtain,
     AtFlex,
     OtherStu,
     AtNoticebar,
@@ -240,6 +249,7 @@ export default {
     const QRpath = ref(""); //二维码路径
     const ifAutoOpen = ref(false); //是否是自动放大的
     const ifShowHelp = ref(false); //是否是自动放大的
+    const ifShowAsked = ref(false); //是否是自动放大的
     const ifShowSingle = ref(true); //是否显示单行
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
     let webSocketTask = Taro.getStorageSync("g_websocket");
@@ -324,6 +334,10 @@ export default {
                   console.log("更新附加同学信息", res.pos);
                   HandleAdd(res.pos);
                   break;
+                case "ask":
+                  console.log("被提问到");
+                  AddNotice("你被老师提问到了");
+                  showAsked();
                 default:
                   break;
               }
@@ -354,7 +368,7 @@ export default {
         AddNotice("websocket已存在");
         Taro.setStorageSync("g_websocket", "");
         console.log(webSocketTask);
-        Taro.closeSocket()
+        Taro.closeSocket();
         wsState.value = 3;
         ifReConnect.value = false;
         //webSocketTask.close()
@@ -364,9 +378,9 @@ export default {
     function HandleAdd(msg) {
       for (let p in msg) {
         GetStuDetail(msg[p]).then((res) => {
-          console.log(p, "方向是：", res.name,"序号：",posList[p]);
-          stuList.value[posList[p]].s_name = res.name
-          console.log(stuList.value)
+          console.log(p, "方向是：", res.name, "序号：", posList[p]);
+          stuList.value[posList[p]].s_name = res.name;
+          console.log(stuList.value);
         });
       }
     }
@@ -396,20 +410,21 @@ export default {
       console.log("打开提示");
       ifShowHelp.value = true;
     }
+
     //关闭帮助
     function closeHelp() {
       console.log("关闭提示");
       ifShowHelp.value = false;
-      stuList.value = [
-        { direction: "左前", s_name: "1" },
-        { direction: "前面", s_name: "2" },
-        { direction: "右前", s_name: "3" },
-        { direction: "左边", s_name: "4" },
-        { direction: "右边", s_name: "5" },
-        { direction: "左后", s_name: "6" },
-        { direction: "后面", s_name: "7" },
-        { direction: "右后", s_name: "8" },
-      ];
+    }
+    //显示被提问
+    function showAsked() {
+      console.log("显示被提问");
+      ifShowAsked.value = true;
+    }
+    //关闭被提问
+    function closeAsk() {
+      console.log("关闭被提问");
+      ifShowAsked.value = false;
     }
     return {
       GetWebSocket,
@@ -423,12 +438,14 @@ export default {
       geneQR,
       autoOpenQR,
       ifAutoOpen,
+      ifShowAsked,
       openQR,
       QRpath,
       wsState,
       s_name,
       showHelp,
       closeHelp,
+      closeAsk,
       setData,
       onclickShowMore,
       ifShowSingle,
@@ -486,5 +503,14 @@ export default {
 }
 .easy-animation {
   transition: 1s ease;
+}
+.asked-container{
+  background: #ffffff;
+  border-radius: 40px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 </style>
