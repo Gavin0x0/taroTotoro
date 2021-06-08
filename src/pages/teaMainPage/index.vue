@@ -347,6 +347,7 @@ export default {
     }
     //更新教室学生信息
     function updateClassroom(classroom) {
+      LinkedStuList = []
       console.log("classroom:", classroom);
       let max_group_num = 0;
       let max_group = null;
