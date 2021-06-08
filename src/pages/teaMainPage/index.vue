@@ -262,7 +262,7 @@ export default {
         },
         success: function (res) {
           let stu_data = res.data;
-          console.log("stu_data:", stu_data);
+          //console.log("stu_data:", stu_data);
           stu.stu_name = stu_data.name;
           stu.avater_url = stu_data.avatar;
           selectedStu.value = stu;
@@ -333,11 +333,11 @@ export default {
       //遍历教室的组
       for (let group in classroom) {
         let obj_length = Object.keys(classroom[group]).length;
-        console.log("该组人数：", obj_length);
+        //console.log("该组人数：", obj_length);
         total += obj_length;
         if (obj_length == 1) {
           unlinked += 1;
-          console.log("unlink:", classroom[group]);
+          //console.log("unlink:", classroom[group]);
           for (let unlink_stu in classroom[group]) {
             unlink_list.value.push({ id: unlink_stu, name: "" });
           }
@@ -370,9 +370,9 @@ export default {
           max_coloum_num = max_group[stu][1];
         }
         if (ifExist(stu)) {
-          console.log(stu, "exist");
+          //console.log(stu, "exist");
         } else {
-          console.log(stu, "not exist");
+          //console.log(stu, "not exist");
           addStu(stu, max_group[stu]);
         }
       }
@@ -384,7 +384,7 @@ export default {
     }
     //加入学生，向服务器请求数据
     function addStu(id, pos) {
-      console.log("ADD:", id);
+      //console.log("ADD:", id);
       let stu = {
         stu_id: "",
         stu_name: "",
@@ -401,7 +401,7 @@ export default {
         },
         success: function (res) {
           let stu_data = res.data;
-          console.log("stu_data:", stu_data);
+          //console.log("stu_data:", stu_data);
           stu.stu_id = id;
           stu.stu_name = stu_data.name;
           stu.avater_url = stu_data.avatar;

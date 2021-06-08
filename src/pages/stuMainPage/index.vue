@@ -380,7 +380,7 @@ export default {
           },
           success: function (res) {
             let stu_data = res.data;
-            console.log("stu_data:", stu_data);
+            //console.log("stu_data:", stu_data);
             resolve(stu_data);
           },
         });
