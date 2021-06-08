@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '主页「Home」'
+  navigationBarTitleText: 'Tatoro在线教室管理'
 }

@@ -21,15 +21,15 @@
       >{{ ifReConnect ? "正在重连" : "重新连接" }}</at-button
     >
   </view>
-  <view class="stu-num-container">
-    <view @tap="canvasUtils">
+  <view class="stu-num-container" @tap="openFloatLayout">
+    <view>
       <text class="ws-text">{{ "已加入教室：" }}</text>
       <text class="num-text" style="margin-right: 0.3em">{{
         entry_stu_num
       }}</text>
       <text class="ws-text">人</text>
     </view>
-    <view @tap="loadImg">
+    <view>
       <text class="ws-text">{{ "已关联位置：" }}</text>
       <text class="num-text" style="margin-right: 0.3em">{{
         located_stu_num
@@ -60,6 +60,11 @@
       }}</text>
     </view>
   </view>
+  <view class="action-layout-container" v-if="selectedStu">
+    <at-button type="primary" @click="quizSelectedStu">提问</at-button>
+    <at-button type="primary">加分</at-button>
+    <at-button type="secondary" @click="openDelSheet">请出教室</at-button>
+  </view>
   <view class="notice-container easy-animation">
     <at-noticebar
       showMore
@@ -71,23 +76,70 @@
       >{{ notice }}</at-noticebar
     >
   </view>
+  <at-float-layout
+    :isOpened="isFloatOpened"
+    title="学生列表"
+    @close="handleFloatClose"
+  >
+    <at-list>
+      <at-list-item
+        v-for="stu in link_list"
+        :key="stu.id"
+        :title="stu.name"
+        :extraText="stu.id"
+        arrow="right"
+        :iconInfo="{ size: 15, color: '#13CE66', value: 'check' }"
+        @tap="selectStu(stu.id)"
+      />
+      <at-list-item
+        v-for="stu in unlink_list"
+        :key="stu.id"
+        :title="stu.name"
+        :extraText="stu.id"
+        arrow="right"
+        :iconInfo="{ size: 15, color: '#FF4949', value: 'close' }"
+        @tap="selectStu(stu.id)"
+      />
+      <at-list-item title="没有更多了。。。" disabled />
+    </at-list>
+  </at-float-layout>
+  <at-action-sheet
+    cancelText="取消"
+    :isOpened="isDelSheetOpened"
+    :onClose ="closeDelSheet"
+    title="将学生请出教室后，该学生将断开座位连结"
+  >
+    <at-action-sheet-item @click="deleteSelectedStu">
+      <text style="color: #ff4949">请出学生</text>
+    </at-action-sheet-item>
+  </at-action-sheet>
 </template>
 <script>
 import { ref, onBeforeUpdate, onMounted } from "vue";
 import "./index.scss";
 import Taro from "@tarojs/taro";
 import {
+  AtList,
+  AtListItem,
   AtAvatar,
   AtButton,
   AtNoticebar,
+  AtFloatLayout,
   AtActivityIndicator,
+  AtActionSheet,
+  AtActionSheetItem,
 } from "taro-ui-vue3";
 export default {
   components: {
+    AtList,
+    AtListItem,
     AtButton,
     AtAvatar,
+    AtFloatLayout,
     AtNoticebar,
     AtActivityIndicator,
+    AtActionSheet,
+    AtActionSheetItem,
   },
   onReady() {
     console.log("on ready");
@@ -133,10 +185,15 @@ export default {
     const total_stu_num = ref(0); //总人数
     const entry_stu_num = ref(30); //已经加入教室的人数
     const located_stu_num = ref(28); //已经关联位置的人数
+    const link_list = ref([]);
+    const unlink_list = ref([]);
     const notice = ref("通知栏消息：欢迎进入！"); //系统通知
     const ifShowSingle = ref(true); //是否显示单行
     const selectedStu = ref(null); //被选中的学生
     const imgLoading = ref(false); //是否正在加载图片
+    const isFloatOpened = ref(false); //学生列表是否打开
+    const isDelSheetOpened = ref(false); //Delete sheet
+    const isAwardSheetOpened = ref(false); //Award sheet
     //Canvas相关变量
     let touchStartXY = [0, 0]; //触摸起始点
     let touchSetXY = ref([0, 0]); //触摸结束点「放置位置」
@@ -161,6 +218,7 @@ export default {
     const _classroom_border = 2; //定义 教室外轮廓宽度
     //逻辑内数据
     let StuList = []; //学生列表
+
     //TODO Mock数据，扩充学生列表，测试用
     function addMockStu() {
       var Mock = require("mockjs");
@@ -188,6 +246,74 @@ export default {
           _blackboard_height,
       ]; //列人数*50，行数*50+20
     }
+    //选中学生
+    function selectStu(stu_id) {
+      isFloatOpened.value = false;
+      let stu = {
+        stu_id: stu_id,
+        stu_name: "",
+        avater_url: require("./assets/avatar.png"),
+      };
+      Taro.request({
+        url: "https://eclass.idealbroker.cn/detail?id=" + stu_id,
+        method: "GET",
+        header: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        success: function (res) {
+          let stu_data = res.data;
+          console.log("stu_data:", stu_data);
+          stu.stu_name = stu_data.name;
+          stu.avater_url = stu_data.avatar;
+          selectedStu.value = stu;
+        },
+      });
+    }
+    //打开\关闭请出学生的二次确认面板
+    function openDelSheet() {
+      isDelSheetOpened.value = true;
+    }
+    function closeDelSheet() {
+      isDelSheetOpened.value = false;
+    }
+    //请出选中的学生
+    function deleteSelectedStu() {
+      isDelSheetOpened.value = false
+      console.log(
+        "请出：",
+        selectedStu.value.stu_id,
+        selectedStu.value.stu_name
+      );
+      AddNotice(
+        "将" +
+          selectedStu.value.stu_id +
+          ":" +
+          selectedStu.value.stu_name +
+          "请出了教室"
+      );
+    }
+    //提问选中的学生
+    function quizSelectedStu() {
+      console.log(
+        "提问：",
+        selectedStu.value.stu_id,
+        selectedStu.value.stu_name
+      );
+      AddNotice(
+        "提问了" + selectedStu.value.stu_id + ":" + selectedStu.value.stu_name
+      );
+    }
+    //判断是否已存在于StuList,如果存在，返回pos，不存在返回0
+    function whereInStuList(id) {
+      let exist = false;
+      for (s in StuList._rawValue) {
+        if (StuList._rawValue[s].stu_id == id) {
+          exist = true;
+        }
+      }
+      return exist;
+    }
+    //判断是否已存在于StuList
     function ifExist(id) {
       let exist = false;
       for (s in StuList._rawValue) {
@@ -197,24 +323,45 @@ export default {
       }
       return exist;
     }
-
     //更新教室学生信息
     function updateClassroom(classroom) {
       console.log("classroom:", classroom);
       let max_group_num = 0;
       let max_group = null;
+      let total = 0; //已加入总数
+      let unlinked = 0; //未连接人数
+      //遍历教室的组
       for (let group in classroom) {
         let obj_length = Object.keys(classroom[group]).length;
-        console.log("该组人数：",obj_length)
+        console.log("该组人数：", obj_length);
+        total += obj_length;
+        if (obj_length == 1) {
+          unlinked += 1;
+          console.log("unlink:", classroom[group]);
+          for (let unlink_stu in classroom[group]) {
+            unlink_list.value.push({ id: unlink_stu, name: "" });
+          }
+        } else {
+          console.log("link:", classroom[group]);
+          for (let link_stu in classroom[group]) {
+            link_list.value.push({ id: link_stu, name: "" });
+          }
+        }
         if (obj_length > max_group_num) {
           max_group_num = obj_length;
-          console.log("最大组人数：",max_group_num)
+          console.log("最大组人数：", max_group_num);
           max_group = classroom[group];
         }
       }
+      console.log("UNLINK GROUP", unlink_list.value);
+      //更新已加入教室总人数
+      entry_stu_num.value = total;
+      //更新已关联人数
+      located_stu_num.value = total - unlinked;
       console.log("max_group:", max_group);
       let max_row_num = 0; //最大行数
       let max_coloum_num = 0; //最大列数
+      //计算教室规模
       for (let stu in max_group) {
         if (max_group[stu][0] > max_row_num) {
           max_row_num = max_group[stu][0];
@@ -235,7 +382,7 @@ export default {
           _blackboard_height,
       ]; //列人数*50，行数*50+20
     }
-
+    //加入学生，向服务器请求数据
     function addStu(id, pos) {
       console.log("ADD:", id);
       let stu = {
@@ -627,7 +774,8 @@ export default {
       );
       for (let s in StuList) {
         if (StuList[s].pos[0] == row_num && StuList[s].pos[1] == coloum_num) {
-          selectedStu.value = StuList[s];
+          selectStu(StuList[s].stu_id);
+          //selectedStu.value = StuList[s];
           AddNotice("选中了：" + StuList[s].stu_name);
           drawSelector(row_num, coloum_num);
         }
@@ -754,7 +902,6 @@ export default {
           DrawStuList(StuList);
           ctx.restore();
           touchMode = 0;
-
           AddNotice("双指触摸结束");
         } else if (touchesNum == 1) {
           AddNotice("仅离开了一只手指");
@@ -772,6 +919,15 @@ export default {
     //点击事件 「查看更多」
     function onclickShowMore() {
       ifShowSingle.value = !ifShowSingle._rawValue;
+    }
+    //打开学生列表浮层
+    function openFloatLayout() {
+      isFloatOpened.value = true;
+    }
+    //监听关闭元素
+    function handleFloatClose() {
+      console.log("float layout closed");
+      isFloatOpened.value = false;
     }
     //连接Websocket
     function GetWebSocket() {
@@ -855,6 +1011,18 @@ export default {
       TouchEnd,
       selectedStu,
       imgLoading,
+      isFloatOpened,
+      isDelSheetOpened,
+      isAwardSheetOpened,
+      openFloatLayout,
+      handleFloatClose,
+      deleteSelectedStu,
+      openDelSheet,
+      closeDelSheet,
+      quizSelectedStu,
+      selectStu,
+      link_list,
+      unlink_list,
     };
   },
 };
@@ -866,9 +1034,15 @@ export default {
   align-items: center;
 }
 .notice-container {
-  margin: 0 5vw 0 5vw;
+  margin: 0 5vw 5vw 5vw;
 }
 .stu-num-container {
+  margin: 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.action-layout-container {
   margin: 5vw;
   display: flex;
   align-items: center;

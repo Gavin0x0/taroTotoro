@@ -1,8 +1,5 @@
 <template>
   <view>
-    <text>
-      {{ loginState }}
-    </text>
     <at-form style="padding-bottom: 10px">
       <view v-if="!ifStart" class="flex-wrp flex-wrp-center">
         <image
