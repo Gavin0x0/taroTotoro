@@ -106,7 +106,7 @@
   <at-action-sheet
     cancelText="取消"
     :isOpened="isDelSheetOpened"
-    :onClose ="closeDelSheet"
+    :onClose="closeDelSheet"
     title="将学生请出教室后，该学生将断开座位连结"
   >
     <at-action-sheet-item @click="deleteSelectedStu">
@@ -117,7 +117,7 @@
 <script>
 import { ref, onBeforeUpdate, onMounted } from "vue";
 import "./index.scss";
-import Taro from "@tarojs/taro";
+import Taro, { addCard } from "@tarojs/taro";
 import {
   AtList,
   AtListItem,
@@ -211,6 +211,7 @@ export default {
     let canvas_init_scal = null; //缩放比初始值
     let canvas_scal = 1; //当前缩放比例
     let classroom_size = [0, 0]; //教室大小，宽度，高度
+    let needReset = false; //头像加载与触摸冲突，立个flag解决冲突
     const _avatar_size = 60; //定义 头像尺寸
     const _avatar_padding = 10; //定义 头像外边距
     const _name_height = 20; //定义 名字高度
@@ -280,15 +281,16 @@ export default {
     }
     //请出选中的学生
     function deleteSelectedStu() {
-      isDelSheetOpened.value = false
+      isDelSheetOpened.value = false;
       Taro.request({
-        url: "https://eclass.idealbroker.cn/exit?id=" + selectedStu.value.stu_id,
+        url:
+          "https://eclass.idealbroker.cn/exit?id=" + selectedStu.value.stu_id,
         method: "GET",
         header: {
           "content-type": "application/x-www-form-urlencoded",
         },
         success: function (res) {
-          console.log(res)
+          console.log(res);
         },
       });
       console.log(
@@ -313,7 +315,7 @@ export default {
           "content-type": "application/x-www-form-urlencoded",
         },
         success: function (res) {
-          console.log(res)
+          console.log(res);
         },
       });
       console.log(
@@ -347,7 +349,7 @@ export default {
     }
     //更新教室学生信息
     function updateClassroom(classroom) {
-      LinkedStuList = []
+      LinkedStuList = [];
       console.log("classroom:", classroom);
       let max_group_num = 0;
       let max_group = null;
@@ -523,6 +525,7 @@ export default {
                 if (success_num == img_num) {
                   AddNotice("全部加载完毕");
                   console.log("全部加载完毕");
+                  needReset = true;
                   ifGotImg = true;
                 }
                 imgLoading.value = false;
@@ -796,7 +799,10 @@ export default {
         t_Y / (_avatar_size + _avatar_padding + _name_height)
       );
       for (let s in LinkedStuList) {
-        if (LinkedStuList[s].pos[0] == row_num && LinkedStuList[s].pos[1] == coloum_num) {
+        if (
+          LinkedStuList[s].pos[0] == row_num &&
+          LinkedStuList[s].pos[1] == coloum_num
+        ) {
           selectStu(LinkedStuList[s].stu_id);
           //selectedStu.value = LinkedStuList[s];
           AddNotice("选中了：" + LinkedStuList[s].stu_name);
@@ -831,9 +837,20 @@ export default {
       DrawStuListNotClean(LinkedStuList);
       ctx.restore();
     }
+    //重置触摸操作设置
+    function resetTouch() {
+      touchMode = 0;
+      touchesNum = 0;
+      needReset = false;
+    }
     //开始触摸
     function TouchStart(e) {
+      if (needReset) {
+        AddNotice("重置触摸操作");
+        resetTouch();
+      }
       touchesNum += 1;
+      AddNotice("touches num:" + touchesNum);
       if (touchMode == 0 && touchesNum == 1) {
         //AddNotice("单指模式");
         touchStartXY = [e.touches[0].x, e.touches[0].y];
@@ -864,6 +881,7 @@ export default {
         touchMode = 2;
         AddNotice("锁定双指模式");
       }
+      //AddNotice("on move touches num:"+e.touches.length)
       if (touchMode == 1) {
         let location = countLocation(e.touches[0].x, e.touches[0].y);
         //drawBall(location[0], location[1], 2, "#b47fd8");

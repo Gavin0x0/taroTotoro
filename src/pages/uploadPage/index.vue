@@ -33,6 +33,7 @@
         title="姓名"
         type="text"
         placeholder="请输入姓名"
+        adjustPosition
         v-model:value="formData.name"
       />
       <at-input
@@ -40,6 +41,7 @@
         title="学号"
         type="number"
         placeholder="请输入学号，例：104XXXXX"
+        adjustPosition
         v-model:value="formData.id"
       />
       <at-button
