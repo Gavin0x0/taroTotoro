@@ -12,7 +12,7 @@
         class="welcome-container"
         @tap="redirectTo('/pages/testPage/index')"
       >
-        <text class="welcome-text">欢迎进入Tatoro在线教室</text>
+        <text class="welcome-text">欢迎进入Totoro在线教室</text>
         <text class="welcome-text">请选择你的身份</text>
       </at-flex-item>
       <at-flex-item class="entry-container">

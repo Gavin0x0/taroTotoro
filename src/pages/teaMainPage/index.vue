@@ -235,7 +235,7 @@ export default {
               stu_name: mock_name,
               avatar: null,
               avatar_ready: false,
-              avater_url: require("./assets/avatar.png"),
+              avater_url: require("../../assets/avatar.png"),
               pos: [i, j],
             };
             LinkedStuList.push(stu);
@@ -255,7 +255,7 @@ export default {
       let stu = {
         stu_id: stu_id,
         stu_name: "",
-        avater_url: require("./assets/avatar.png"),
+        avater_url: require("../../assets/avatar.png"),
       };
       Taro.request({
         url: "https://eclass.idealbroker.cn/detail?id=" + stu_id,
@@ -415,7 +415,7 @@ export default {
         stu_name: "",
         avatar: null,
         avatar_ready: false,
-        avater_url: require("./assets/avatar.png"),
+        avater_url: require("../../assets/avatar.png"),
         pos: pos,
       };
       Taro.request({

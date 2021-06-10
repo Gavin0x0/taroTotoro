@@ -213,7 +213,7 @@ export default {
           .select("#classroom2Canvas")
           .fields({ node: true, size: true })
           .exec((res) => {
-            console.log("Select",res)
+            console.log("Select", res);
             resolve(res[0]);
           });
       });
@@ -389,12 +389,11 @@ export default {
     //接口测试
     //Login测试
     function LoginTest() {
-      Taro.login({
-        success: function (res) {
-          console.log("Login:", res);
+      wx.login({
+        success(res) {
           if (res.code) {
             //发起网络请求
-            Taro.request({
+            wx.request({
               url: "https://eclass.idealbroker.cn/login",
               method: "POST",
               header: {
@@ -405,10 +404,16 @@ export default {
               },
               success: function (res) {
                 console.log(res.data);
+                loginState.value = res.data.is_new_user;
+                if (!res.data.is_new_user) {
+                  formData.value = { name: "非新用户1", id: "654321" };
+                } else {
+                  formData.value = { name: "新测试用户1", id: "123456" };
+                }
               },
             });
           } else {
-            console.log("用户凭证获取失败！" + res.errMsg);
+            console.log("登录失败！" + res.errMsg);
           }
         },
       });
