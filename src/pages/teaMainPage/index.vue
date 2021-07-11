@@ -330,8 +330,8 @@ export default {
     //判断是否已存在于StuList,如果存在，返回pos，不存在返回0
     function whereInStuList(id) {
       let exist = false;
-      for (s in LinkedStuList._rawValue) {
-        if (LinkedStuList._rawValue[s].stu_id == id) {
+      for (s in LinkedStuList.value) {
+        if (LinkedStuList.value[s].stu_id == id) {
           exist = true;
         }
       }
@@ -340,8 +340,8 @@ export default {
     //判断是否已存在于StuList
     function ifExist(id) {
       let exist = false;
-      for (s in LinkedStuList._rawValue) {
-        if (LinkedStuList._rawValue[s].stu_id == id) {
+      for (s in LinkedStuList.value) {
+        if (LinkedStuList.value[s].stu_id == id) {
           exist = true;
         }
       }
@@ -500,7 +500,7 @@ export default {
           needToLoad.push(load);
         }
       }
-      if (!imgLoading._rawValue && needToLoad.length != 0) {
+      if (!imgLoading.value && needToLoad.length != 0) {
         imgLoading.value = true;
         if (ifGotCanvas) {
           let canvas = C_canvas;
@@ -659,7 +659,7 @@ export default {
     function DrawStuNotClean(stu) {
       let ctx = C_ctx;
       ctx.save();
-      ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
+      ctx.translate(touchSetXY.value[0], touchSetXY.value[1]);
       ctx.scale(canvas_scal, canvas_scal);
       DrawStu(ctx, stu);
       ctx.restore();
@@ -744,8 +744,8 @@ export default {
     //TODO 出界计算要考虑已画内容大小
     function countLocation(X, Y) {
       let res_loc = [0, 0]; //原绘制坐标
-      res_loc[0] = X - touchStartXY[0] + touchSetXY._rawValue[0];
-      res_loc[1] = Y - touchStartXY[1] + touchSetXY._rawValue[1];
+      res_loc[0] = X - touchStartXY[0] + touchSetXY.value[0];
+      res_loc[1] = Y - touchStartXY[1] + touchSetXY.value[1];
       if (
         res_loc[0] <
         (-1 * classroom_size[0] + _avatar_size + _avatar_padding) * canvas_scal
@@ -791,8 +791,8 @@ export default {
     function selectStuByTouch(touches) {
       //drawBall(touches[0].x, touches[0].y, 5, "#1aad19");
       //AddNotice("触摸点X：" + touches[0].x + "触摸点Y：" + touches[0].y);
-      let t_X = (touches[0].x - touchSetXY._rawValue[0]) / canvas_scal;
-      let t_Y = (touches[0].y - touchSetXY._rawValue[1]) / canvas_scal;
+      let t_X = (touches[0].x - touchSetXY.value[0]) / canvas_scal;
+      let t_Y = (touches[0].y - touchSetXY.value[1]) / canvas_scal;
       AddNotice("相对触摸点X：" + t_X + "相对触摸点Y：" + t_Y);
       let row_num = parseInt(t_X / (_avatar_size + _avatar_padding));
       let coloum_num = parseInt(
@@ -816,7 +816,7 @@ export default {
       let ctx = C_ctx;
       cleanAll(true);
       ctx.save();
-      ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
+      ctx.translate(touchSetXY.value[0], touchSetXY.value[1]);
       ctx.scale(canvas_scal, canvas_scal);
       DrawClassroom();
       ctx.fillStyle = "#1aad19";
@@ -915,15 +915,15 @@ export default {
           );
           console.log(
             "新起始点：",
-            touchSetXY._rawValue[0],
-            touchSetXY._rawValue[1]
+            touchSetXY.value[0],
+            touchSetXY.value[1]
           );
           console.log("单指触摸结束");
           AddNotice(
             "单指触摸结束X:" +
-              touchSetXY._rawValue[0] +
+              touchSetXY.value[0] +
               "Y:" +
-              touchSetXY._rawValue[1]
+              touchSetXY.value[1]
           );
           //drawBall(e.changedTouches[0].x, e.changedTouches[0].y, 5, "#ff5252");
           touchMode = 0;
@@ -938,7 +938,7 @@ export default {
             canvas_size[1] / 2 - (classroom_size[1] / 2) * canvas_scal,
           ];
           ctx.save();
-          ctx.translate(touchSetXY._rawValue[0], touchSetXY._rawValue[1]);
+          ctx.translate(touchSetXY.value[0], touchSetXY.value[1]);
           ctx.scale(canvas_scal, canvas_scal);
           DrawStuList(LinkedStuList);
           ctx.restore();
@@ -955,11 +955,11 @@ export default {
     function AddNotice(new_notice) {
       let nowTime = new Date().toString().split(" ")[4];
       //console.log(nowTime);
-      notice.value = nowTime + "-" + new_notice + "\n" + notice._rawValue;
+      notice.value = nowTime + "-" + new_notice + "\n" + notice.value;
     }
     //点击事件 「查看更多」
     function onclickShowMore() {
-      ifShowSingle.value = !ifShowSingle._rawValue;
+      ifShowSingle.value = !ifShowSingle.value;
     }
     //打开学生列表浮层
     function openFloatLayout() {

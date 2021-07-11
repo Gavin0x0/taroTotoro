@@ -233,14 +233,14 @@ export default {
     }
     //绘制测试
     function tryToDraw() {
-      let ctx = C_ctx._rawValue;
-      let canvas = C_canvas._rawValue;
+      let ctx = C_ctx.value;
+      let canvas = C_canvas.value;
       const img = canvas.createImage();
       img.src = imgPath.value;
       ctx.drawImage(img, 0, 0, 100, 100);
     }
     function tryToMove() {
-      let ctx = C_ctx._rawValue;
+      let ctx = C_ctx.value;
       // 清楚画布
       ctx.clearRect(-375, -400, 750, 750);
       // 保存当前帧，以备复原
@@ -307,7 +307,7 @@ export default {
     //     studentsList.value.push([row, column, name]);
     //     console.log("添加了一个学生:", name);
     //   }
-    //   console.log("当前学生：", studentsList._rawValue);
+    //   console.log("当前学生：", studentsList.value);
     //   //二维数组查找
     //   function findSeat(ter) {
     //     return ter[0] == row && ter[1] == column;
@@ -318,9 +318,9 @@ export default {
     //Canvas绘图
     // function CanvasClassroom(avatarRes, ctx, transX, transY) {
     //   //设置缩放
-    //   ctx.transform(zoomScale._rawValue, 0, 0, zoomScale._rawValue, 0, 0);
+    //   ctx.transform(zoomScale.value, 0, 0, zoomScale.value, 0, 0);
     //   //drawImage(图片路径, 图片选择框起始x, 图片选择框起始y, 图片选择框宽度, 图片选择框高度, 放置位置x, 放置位置y, 放置宽度, 放置高度)
-    //   let mapList = studentsList._rawValue;
+    //   let mapList = studentsList.value;
     //   for (let i in mapList) {
     //     CanvasStudent(
     //       avatarRes,
@@ -348,17 +348,17 @@ export default {
     }
     //手指移动
     function TouchMove(e) {
-      let ctx = C_ctx._rawValue;
+      let ctx = C_ctx.value;
       if (e.touches.length == 1) {
         console.log("单指触摸", e.touches);
         let transX =
-          e.touches[0].x - touchStartXY._rawValue[0] + touchSetXY._rawValue[0];
+          e.touches[0].x - touchStartXY.value[0] + touchSetXY.value[0];
         let transY =
-          e.touches[0].y - touchStartXY._rawValue[1] + touchSetXY._rawValue[1];
+          e.touches[0].y - touchStartXY.value[1] + touchSetXY.value[1];
         //CanvasContext.transform(number scaleX, number skewX, number skewY, number scaleY, number translateX, number translateY)
         console.log("位移X：", transX, "位移Y：", transY);
         tryToMove();
-        // CanvasClassroom(avatarData._rawValue, ctx, transX, transY);
+        // CanvasClassroom(avatarData.value, ctx, transX, transY);
         // ctx.draw();
       } else {
         console.log("多指触摸", e.touches);
@@ -369,11 +369,11 @@ export default {
       console.log("触摸结束", e.changedTouches);
       touchSetXY.value = [
         e.changedTouches[0].x -
-          touchStartXY._rawValue[0] +
-          touchSetXY._rawValue[0],
+          touchStartXY.value[0] +
+          touchSetXY.value[0],
         e.changedTouches[0].y -
-          touchStartXY._rawValue[1] +
-          touchSetXY._rawValue[1],
+          touchStartXY.value[1] +
+          touchSetXY.value[1],
       ];
       console.log("新起始点：", touchSetXY);
     }
@@ -383,7 +383,7 @@ export default {
       console.log(e.detail.value);
       zoomScale.value = e.detail.value / 100;
       const ctx = wx.createCanvasContext("classroom2Canvas");
-      CanvasClassroom(avatarData._rawValue, ctx, 0, 0);
+      CanvasClassroom(avatarData.value, ctx, 0, 0);
       ctx.draw();
     }
     //接口测试

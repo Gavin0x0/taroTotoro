@@ -73,7 +73,6 @@ export default {
     AtForm,
     AtInput,
     AtButton,
-    AtMessage,
   },
   mounted() {
     this.LoginTest();
@@ -165,7 +164,7 @@ export default {
     }
     //拍摄头像
     function takePhoto() {
-      if (ifOpenCamera._rawValue) {
+      if (ifOpenCamera.value) {
         const ctx = wx.createCameraContext();
         ctx.takePhoto({
           quality: "high",

@@ -259,7 +259,7 @@ export default {
     }
     //点击事件 「查看更多」
     function onclickShowMore() {
-      ifShowSingle.value = !ifShowSingle._rawValue;
+      ifShowSingle.value = !ifShowSingle.value;
     }
     //生成二维码
     function geneQR(content) {
@@ -283,7 +283,7 @@ export default {
     //放大二维码
     function openQR() {
       console.log("放大二维码");
-      ifOpenQR.value = !ifOpenQR._rawValue;
+      ifOpenQR.value = !ifOpenQR.value;
     }
     //放大二维码
     function autoOpenQR(x) {
@@ -295,7 +295,7 @@ export default {
     function AddNotice(new_notice) {
       let nowTime = new Date().toString().split(" ")[4];
       //console.log(nowTime);
-      notice.value = nowTime + "-" + new_notice + "\n" + notice._rawValue;
+      notice.value = nowTime + "-" + new_notice + "\n" + notice.value;
     }
     //连接Websocket
     //TODO 销毁时断开长连接
@@ -305,7 +305,7 @@ export default {
       //如果为空则连接
       if (!webSocketTask) {
         Taro.connectSocket({
-          url: "wss://eclass.idealbroker.cn/ws/1/" + s_id._rawValue,
+          url: "wss://eclass.idealbroker.cn/ws/1/" + s_id.value,
           success: function () {
             console.log("connect success");
             AddNotice("ws连接成功");
