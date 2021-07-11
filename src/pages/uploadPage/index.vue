@@ -198,7 +198,7 @@ export default {
       if (!V_result) {
         console.log(formData.value);
         Taro.uploadFile({
-          url: "https://eclass.idealbroker.cn/add", //仅为本地测试，非真实的接口地址
+          url: "https://eclass.idealbroker.cn/add",
           filePath: imgPath.value,
           name: "file",
           formData: {

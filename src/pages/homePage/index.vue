@@ -54,7 +54,6 @@ export default {
   name: "home",
   components: {
     AtFlexItem,
-    AtButton,
     AtFlex,
   },
   setup(props) {
